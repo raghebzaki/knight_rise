@@ -13,5 +13,8 @@ abstract class AppSettings with _$AppSettings {
 
     /// Water logged per tap and per notification "Done".
     @Default(250) int waterPerTapMl,
+
+    /// IANA zone id the schedule was last planned in; null before first check.
+    String? timezoneId,
   }) = _AppSettings;
 }

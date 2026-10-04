@@ -18,13 +18,22 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  test('seeds default routines, Mon–Fri 09–17, and default settings', () async {
+  test('seeds default routines, Sun–Thu 09–17, and default settings', () async {
     expect(await DriftRoutineRepository(db).getAll(), Routine.defaults);
     expect(await DriftWorkScheduleRepository(db).get(), WorkSchedule.standard());
     final s = await DriftSettingsRepository(db).get();
     expect(s.themeVariant, ThemeVariant.midnight);
     expect(s.waterPerTapMl, 250);
     expect(s.precisionTiming, isFalse);
+    expect(s.timezoneId, isNull);
+  });
+
+  test('settings timezoneId round-trips and can be cleared', () async {
+    final settings = DriftSettingsRepository(db);
+    await settings.save((await settings.get()).copyWith(timezoneId: 'Africa/Cairo'));
+    expect((await settings.get()).timezoneId, 'Africa/Cairo');
+    await settings.save((await settings.get()).copyWith(timezoneId: null));
+    expect((await settings.get()).timezoneId, isNull);
   });
 
   test('routine and settings updates round-trip and stream', () async {

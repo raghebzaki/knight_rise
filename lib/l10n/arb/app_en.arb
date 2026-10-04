@@ -23,5 +23,17 @@
   "themeMidnight": "Midnight",
   "themeAmoled": "AMOLED",
   "gallery": "Widget gallery",
-  "disabled": "Disabled"
+  "disabled": "Disabled",
+  "notifHydrationTitle": "Refuel, Knight.",
+  "notifHydrationBody": "One glass of water — 250 ml.",
+  "notifStretchTitle": "Rise and stretch.",
+  "notifStretchBody": "2 minutes: stand up and move.",
+  "notifEyeRestTitle": "Rest your eyes.",
+  "notifEyeRestBody": "Look 20 ft away for 20 seconds.",
+  "notifMergedTitle": "Knight's call",
+  "notifChannelHydrationDescription": "Hydration reminders",
+  "notifChannelStretchDescription": "Quick stretch reminders",
+  "notifChannelEyeRestDescription": "Eye rest reminders",
+  "notifChannelSystemName": "Status",
+  "notifChannelSystemDescription": "Status messages such as paused reminders"
 }

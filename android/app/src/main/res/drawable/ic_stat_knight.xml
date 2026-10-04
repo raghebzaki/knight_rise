@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome status-bar icon (Android tints it): a simple shield with a notch. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2L4,5v6c0,5.25 3.4,10.15 8,11.35c4.6,-1.2 8,-6.1 8,-11.35V5L12,2zM12,12.5h6c-0.45,3.6 -2.7,6.7 -6,7.8V12.5H6V6.3l6,-2.25V12.5z"/>
+</vector>

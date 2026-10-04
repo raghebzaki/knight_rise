@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:knight_rise/core/database/app_database.steps.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 
@@ -52,11 +53,29 @@ class AppSettingsTable extends Table {
   BoolColumn get precisionTiming => boolean().withDefault(const Constant(false))();
   IntColumn get waterPerTapMl => integer().withDefault(const Constant(250))();
 
+  /// IANA id the schedule was last reconciled in (null until first resume check).
+  TextColumn get timezoneId => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Routines, WorkWindows, ReminderEvents, AppSettingsTable])
+/// Audit log of schedule reconciles (diagnostics screen, Milestone 3).
+@DataClassName('ReconcileRunRow')
+@TableIndex(name: 'idx_reconcile_runs_at', columns: {#at})
+class ReconcileRuns extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get at => dateTime()();
+
+  /// `ReconcileTrigger.name`.
+  TextColumn get trigger => text()();
+  IntColumn get planned => integer()();
+  IntColumn get added => integer()();
+  IntColumn get cancelled => integer()();
+  TextColumn get error => text().nullable()();
+}
+
+@DriftDatabase(tables: [Routines, WorkWindows, ReminderEvents, AppSettingsTable, ReconcileRuns])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -67,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,12 +94,19 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await seedDefaults();
     },
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.timezoneId);
+        await m.createTable(schema.reconcileRuns);
+        await m.createIndex(schema.idxReconcileRunsAt);
+      },
+    ),
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
 
-  /// Default routines, Mon–Fri 09:00–17:00, default settings.
+  /// Default routines, Sun–Thu 09:00–17:00, default settings.
   Future<void> seedDefaults() => batch((b) {
     b
       ..insertAll(routines, [

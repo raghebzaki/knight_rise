@@ -26,10 +26,11 @@ abstract class WorkSchedule with _$WorkSchedule {
 
   const WorkSchedule._();
 
-  /// Default: Monday–Friday, 09:00–17:00. Editable in Milestone 3.
+  /// Default: Sunday–Thursday, 09:00–17:00; Friday and Saturday off. Editable in Milestone 3.
   factory WorkSchedule.standard() => WorkSchedule(
     days: {
-      for (var d = DateTime.monday; d <= DateTime.friday; d++) d: [TimeWindow.hm(9, 0, 17, 0)],
+      for (final d in const [DateTime.sunday, DateTime.monday, DateTime.tuesday, DateTime.wednesday, DateTime.thursday])
+        d: [TimeWindow.hm(9, 0, 17, 0)],
     },
   );
 

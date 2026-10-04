@@ -8,7 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../helpers/tz.dart';
 
-// 2026-10-05 is a Monday; 2026-10-09 a Friday.
+// 2026-10-05 is a Monday; 2026-10-08 a Thursday; 2026-10-09 a Friday; 2026-10-11 a Sunday.
 const hydration = Routine(type: RoutineType.hydration, intervalMinutes: 45, dailyTarget: 8);
 const stretch = Routine(type: RoutineType.stretch, intervalMinutes: 60, dailyTarget: 6);
 const eyeRest = Routine(type: RoutineType.eyeRest, intervalMinutes: 20, dailyTarget: 12);
@@ -48,10 +48,10 @@ void main() {
       expect(hm(plan, cairo).where((s) => s.startsWith('5 ')).last, '5 16:30');
     });
 
-    test('skips nights and weekends: Friday evening → Monday morning', () {
+    test('skips nights and weekends: Thursday evening → Sunday morning', () {
       const longPlanner = ReminderPlanner(horizon: Duration(hours: 72));
-      final plan = longPlanner.plan(input(now: at(cairo, 2026, 10, 9, 16, 50)));
-      expect(hm(plan, cairo).first, '12 09:45'); // Monday 12 Oct
+      final plan = longPlanner.plan(input(now: at(cairo, 2026, 10, 8, 16, 50)));
+      expect(hm(plan, cairo).first, '11 09:45'); // Sunday 11 Oct
     });
 
     test('rolling: completion restarts the interval', () {

@@ -108,10 +108,10 @@ void main() {
       expect(s.overallProgress, closeTo(0.25 / 3, 1e-9));
     });
 
-    test('off duty on Saturday with Monday 09:00 as next work start', () {
+    test('off duty on Saturday with Sunday 09:00 as next work start', () {
       final s = build(inputs(const []), now: at(cairo, 2026, 10, 10, 12), location: cairo);
       expect(s.onDuty, isFalse);
-      expect(s.nextWorkStart, at(cairo, 2026, 10, 12, 9));
+      expect(s.nextWorkStart, at(cairo, 2026, 10, 11, 9));
       expect(s.routines.map((r) => r.status), everyElement(isA<StatusOffDuty>()));
     });
 

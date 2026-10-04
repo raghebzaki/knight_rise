@@ -28,6 +28,7 @@ class DriftSettingsRepository implements SettingsRepository {
           themeVariant: Value(s.themeVariant.name),
           precisionTiming: Value(s.precisionTiming),
           waterPerTapMl: Value(s.waterPerTapMl),
+          timezoneId: Value(s.timezoneId),
         ),
       );
 
@@ -37,5 +38,6 @@ class DriftSettingsRepository implements SettingsRepository {
           themeVariant: ThemeVariant.values.asNameMap()[r.themeVariant] ?? ThemeVariant.midnight,
           precisionTiming: r.precisionTiming,
           waterPerTapMl: r.waterPerTapMl,
+          timezoneId: r.timezoneId,
         );
 }
