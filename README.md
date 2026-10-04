@@ -1,0 +1,76 @@
+# Knight Rise
+
+**Stay Active. Stay Focused.**
+
+Knight Rise is an offline-first Flutter app (Android and iOS) for desk workers. It schedules hydration, quick-stretch and eye-rest reminders inside your working hours, lets you act on them straight from the notification, and tracks daily progress as a "Quest Log". Timing is owned by the OS notification scheduler rather than in-app timers, so reminders survive the app being backgrounded or killed.
+
+Design, architecture and roadmap: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+## Getting started
+
+Requirements: Flutter 3.47.x (Dart 3.13).
+
+```bash
+flutter pub get
+
+# Code generation: *.g.dart, *.freezed.dart, injection.config.dart
+dart run build_runner build
+
+# Localization (lib/l10n/arb -> lib/l10n/generated)
+flutter gen-l10n
+
+flutter run                           # dev flavor (default)
+flutter run --dart-define=FLAVOR=prod # prod flavor
+```
+
+## Project structure
+
+```text
+lib/
+  main.dart, app.dart
+  core/
+    clock/       Clock abstraction
+    config/      Build flavor (dev/prod)
+    database/    Drift database
+    di/          get_it + injectable setup
+    router/      go_router configuration
+    theme/       Palette, tokens, theme, KnightCard, KnightRing
+    time/        Local-day helpers, timezone loader
+    utils/       Shared helpers (combine_latest)
+  features/
+    cycle/       CycleBloc, home page, countdown widgets
+    gallery/     Widget gallery page
+    routines/    Routine entity, repository (domain + data)
+    scheduler/   ReminderPlanner, reminder events, cycle use cases
+    settings/    App settings, ThemeCubit
+    shield/      Shield window entity
+    work_hours/  Work schedule entity and repository
+  l10n/          ARB sources and generated localizations
+```
+
+Features follow a domain / data / presentation split, and domain code stays free of Flutter imports.
+
+## Testing
+
+```bash
+flutter test
+```
+
+Current coverage:
+
+- `ReminderPlanner`: planning, status and next-change logic, notification ID determinism
+- Cycle use cases and `CycleBloc` state transitions
+- Drift database behavior
+- Theme construction (`KnightTheme`)
+- Home page widget test
+
+## Roadmap
+
+- Milestone 1, core theme and timer MVP: done
+- Milestone 2, background scheduling and interactive notifications: pending
+- Milestone 3, Shield Mode and settings customization: pending
+- Milestone 4, Quest Log dashboard, history and polish: pending
+
+## Fonts
+
+Orbitron, Rajdhani and Inter are bundled under `assets/fonts/` so the app works offline. Their SIL Open Font License texts are included alongside the font files.

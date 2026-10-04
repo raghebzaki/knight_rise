@@ -1,0 +1,62 @@
+name: knight_rise
+description: "Knight Rise — Stay Active. Stay Focused. Break, hydration and eye-rest reminders for desk workers."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_bloc: ^9.1.1
+  bloc: ^9.2.1
+  equatable: ^3.0.0
+  freezed_annotation: ^3.1.0
+  get_it: ^9.3.0
+  injectable: ^3.0.0
+  go_router: ^18.0.2
+  drift: ^2.35.1
+  drift_flutter: ^0.3.1
+  timezone: ^0.11.1
+  intl: ^0.20.3
+  flutter_localizations:
+    sdk: flutter
+  path_provider: ^2.1.6
+  flutter_timezone: ^5.1.1
+  meta: ^1.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  build_runner: ^2.16.1
+  freezed: ^4.0.1
+  injectable_generator: ^3.1.3
+  drift_dev: ^2.35.1
+  bloc_test: ^10.0.0
+  mocktail: ^1.0.5
+  very_good_analysis: ^11.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  fonts:
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron-Variable.ttf
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Rajdhani-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Rajdhani-Bold.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

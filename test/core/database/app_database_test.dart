@@ -1,0 +1,89 @@
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:knight_rise/core/database/app_database.dart';
+import 'package:knight_rise/core/theme/knight_palette.dart';
+import 'package:knight_rise/features/routines/data/drift_routine_repository.dart';
+import 'package:knight_rise/features/routines/domain/entities/routine.dart';
+import 'package:knight_rise/features/scheduler/data/drift_reminder_event_repository.dart';
+import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
+import 'package:knight_rise/features/settings/data/drift_settings_repository.dart';
+import 'package:knight_rise/features/work_hours/data/drift_work_schedule_repository.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
+
+void main() {
+  late AppDatabase db;
+
+  setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
+  setUp(() => db = AppDatabase(NativeDatabase.memory()));
+  tearDown(() => db.close());
+
+  test('seeds default routines, Mon–Fri 09–17, and default settings', () async {
+    expect(await DriftRoutineRepository(db).getAll(), Routine.defaults);
+    expect(await DriftWorkScheduleRepository(db).get(), WorkSchedule.standard());
+    final s = await DriftSettingsRepository(db).get();
+    expect(s.themeVariant, ThemeVariant.midnight);
+    expect(s.waterPerTapMl, 250);
+    expect(s.precisionTiming, isFalse);
+  });
+
+  test('routine and settings updates round-trip and stream', () async {
+    final routines = DriftRoutineRepository(db);
+    final settings = DriftSettingsRepository(db);
+
+    final emitted = routines.watchAll().firstWhere(
+      (l) => l.first.intervalMinutes == 30 && l.first.mode == ScheduleMode.fixedGrid,
+    );
+    await routines.save(Routine.defaults.first.copyWith(intervalMinutes: 30, mode: ScheduleMode.fixedGrid));
+    final second = await emitted.timeout(const Duration(seconds: 5));
+    expect(second.first.intervalMinutes, 30);
+    expect(second.first.mode, ScheduleMode.fixedGrid);
+
+    await settings.save((await settings.get()).copyWith(themeVariant: ThemeVariant.amoled));
+    expect((await settings.get()).themeVariant, ThemeVariant.amoled);
+  });
+
+  test('events are filtered by time and keep every field', () async {
+    final repo = DriftReminderEventRepository(db);
+    final day = DateTime(2026, 10, 5);
+    await repo.add(
+      ReminderEvent(
+        type: RoutineType.hydration,
+        outcome: ReminderOutcome.done,
+        at: day.subtract(const Duration(hours: 1)),
+      ),
+    );
+    await repo.add(
+      ReminderEvent(
+        type: RoutineType.stretch,
+        outcome: ReminderOutcome.snoozed,
+        at: day.add(const Duration(hours: 10)),
+        snoozedUntil: day.add(const Duration(hours: 10, minutes: 10)),
+      ),
+    );
+    await repo.add(
+      ReminderEvent(
+        type: RoutineType.hydration,
+        outcome: ReminderOutcome.done,
+        at: day.add(const Duration(hours: 11)),
+        waterMl: 250,
+      ),
+    );
+
+    final today = await repo.getSince(day);
+    expect(today.map((e) => e.type), [RoutineType.stretch, RoutineType.hydration]);
+    expect(today.first.snoozedUntil, day.add(const Duration(hours: 10, minutes: 10)));
+    expect(today.last.waterMl, 250);
+  });
+
+  test('work schedule save replaces all windows', () async {
+    final repo = DriftWorkScheduleRepository(db);
+    final split = WorkSchedule(
+      days: {
+        DateTime.sunday: [TimeWindow.hm(9, 0, 12, 0), TimeWindow.hm(13, 0, 17, 0)],
+      },
+    );
+    await repo.save(split);
+    expect(await repo.get(), split);
+  });
+}
