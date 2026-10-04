@@ -11,6 +11,7 @@ import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/countdown_text.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
+import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/cycle_snapshot.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
@@ -54,6 +55,12 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          if (Flavor.current.isDev)
+            IconButton(
+              tooltip: 'Diagnostics',
+              icon: const Icon(Icons.bug_report_outlined),
+              onPressed: () => context.push('/diagnostics'),
+            ),
           if (Flavor.current.isDev)
             IconButton(
               tooltip: l.gallery,
@@ -101,6 +108,7 @@ class _Dashboard extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
       children: [
+        const _NotificationPermissionCard(),
         _QuestHero(snapshot: snapshot),
         const SizedBox(height: KnightSpacing.lg),
         _NextUpCard(snapshot: snapshot),
@@ -110,6 +118,53 @@ class _Dashboard extends StatelessWidget {
           const SizedBox(height: KnightSpacing.md),
         ],
       ],
+    );
+  }
+}
+
+/// Shown while notifications are off. Tapping Enable is the only place the
+/// system permission dialog is triggered.
+class _NotificationPermissionCard extends StatelessWidget {
+  const _NotificationPermissionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NotificationPermissionCubit, NotificationPermissionState>(
+      builder: (context, state) {
+        if (!state.showPrompt) return const SizedBox.shrink();
+        final l = AppLocalizations.of(context);
+        final text = Theme.of(context).textTheme;
+        final cubit = context.read<NotificationPermissionCubit>();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: KnightSpacing.lg),
+          child: KnightCard(
+            glow: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.notifications_active_outlined, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: KnightSpacing.md),
+                    Expanded(child: Text(l.notifPermissionTitle, style: text.titleLarge)),
+                  ],
+                ),
+                const SizedBox(height: KnightSpacing.sm),
+                Text(state.requestDenied ? l.notifPermissionBodyDenied : l.notifPermissionBody, style: text.bodyMedium),
+                const SizedBox(height: KnightSpacing.md),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: cubit.dismiss, child: Text(l.notNow)),
+                    const SizedBox(width: KnightSpacing.sm),
+                    FilledButton(onPressed: cubit.request, child: Text(l.enable)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:knight_rise/app.dart';
 import 'package:knight_rise/core/config/flavor.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/router/break_location.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
@@ -19,11 +21,24 @@ Future<void> main() async {
   unawaited(getIt<BackgroundScheduler>().register());
   if (Flavor.current.isDev && kDebugMode) Bloc.observer = const _LogObserver();
   runApp(const KnightRiseApp());
+  // Cold start from a notification tap: the plugin reports it as launch
+  // details instead of calling the foreground callback.
+  final launch = await getIt<NotificationGateway>().launchAction();
+  if (launch != null && launch.kind == ReminderActionKind.open) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openBreak(launch));
+  }
+}
+
+final _openBreakDeduper = OpenBreakDeduper();
+
+void _openBreak(ReminderAction action) {
+  if (!_openBreakDeduper.shouldOpen(action.notificationId)) return;
+  unawaited(getIt<GoRouter>().push(breakLocation(action.types)));
 }
 
 void _onForegroundAction(ReminderAction action) {
   if (action.kind == ReminderActionKind.open) {
-    debugPrint('Notification opened: $action'); // Task 7 adds navigation.
+    _openBreak(action);
     return;
   }
   unawaited(

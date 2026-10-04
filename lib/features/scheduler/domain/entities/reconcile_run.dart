@@ -2,8 +2,10 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'reconcile_run.freezed.dart';
 
-/// What woke the reconciler.
-enum ReconcileTrigger { launch, resume, configChange, action, boot, periodic, timezoneChange }
+/// What woke the reconciler. Stored by name in a text column, so adding a
+/// value needs no migration; the Drift repository maps unknown names to
+/// [periodic].
+enum ReconcileTrigger { launch, resume, configChange, action, boot, periodic, timezoneChange, manual }
 
 /// One audit-log entry: a single reconcile pass and what it changed.
 @freezed

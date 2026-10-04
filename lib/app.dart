@@ -7,10 +7,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
-import 'package:knight_rise/core/router/app_router.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
+import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/scheduler/presentation/schedule_sync_service.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
@@ -18,7 +18,7 @@ import 'package:knight_rise/l10n/generated/app_localizations.dart';
 class KnightRiseApp extends StatefulWidget {
   const KnightRiseApp({super.key, this.router});
 
-  /// Injected in tests; built from [buildRouter] otherwise.
+  /// Injected in tests; the DI singleton otherwise.
   final GoRouter? router;
 
   @override
@@ -26,8 +26,9 @@ class KnightRiseApp extends StatefulWidget {
 }
 
 class _KnightRiseAppState extends State<KnightRiseApp> {
-  late final GoRouter _router = widget.router ?? buildRouter();
+  late final GoRouter _router = widget.router ?? getIt<GoRouter>();
   late final ScheduleSyncService _sync = getIt<ScheduleSyncService>();
+  late final NotificationPermissionCubit _permission = getIt<NotificationPermissionCubit>();
   late final AppLifecycleListener _lifecycle;
   StreamSubscription<void>? _tzSub;
 
@@ -38,7 +39,13 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(onResume: () => unawaited(_sync.onResume()));
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        unawaited(_sync.onResume());
+        unawaited(_permission.check());
+      },
+    );
+    unawaited(_permission.check());
     _tzSub = _sync.timezoneChanged.listen((_) {
       if (mounted) setState(() => _scope = UniqueKey());
     });
@@ -49,6 +56,7 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   void dispose() {
     _lifecycle.dispose();
     unawaited(_tzSub?.cancel());
+    unawaited(_permission.close());
     super.dispose();
   }
 
@@ -59,6 +67,9 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
       child: MultiBlocProvider(
         key: _scope,
         providers: [
+          // Value-provided: owned by this state so it survives scope resets
+          // (a dismissed card must stay dismissed after a timezone change).
+          BlocProvider.value(value: _permission),
           BlocProvider(create: (_) => getIt<ThemeCubit>()),
           BlocProvider(create: (_) => getIt<CycleBloc>()..add(const CycleStarted())),
         ],

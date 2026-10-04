@@ -114,7 +114,8 @@ class BuildCycleSnapshot {
   }
 }
 
-/// Marks a routine done now. Hydration also logs one tap of water (250 ml).
+/// Marks a routine done now. Hydration also logs water: `waterMl` when given,
+/// otherwise one tap (`settings.waterPerTapMl`, 250 ml by default).
 @injectable
 class CompleteRoutine {
   const CompleteRoutine(this._events, this._settings, this._clock);
@@ -123,7 +124,7 @@ class CompleteRoutine {
   final SettingsRepository _settings;
   final Clock _clock;
 
-  Future<void> call(RoutineType type, {DateTime? scheduledAt}) async {
+  Future<void> call(RoutineType type, {DateTime? scheduledAt, int? waterMl}) async {
     final settings = await _settings.get();
     await _events.add(
       ReminderEvent(
@@ -131,7 +132,7 @@ class CompleteRoutine {
         outcome: ReminderOutcome.done,
         at: _clock.now(),
         scheduledAt: scheduledAt,
-        waterMl: type == RoutineType.hydration ? settings.waterPerTapMl : null,
+        waterMl: type == RoutineType.hydration ? (waterMl ?? settings.waterPerTapMl) : null,
       ),
     );
   }

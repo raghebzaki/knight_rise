@@ -29,8 +29,11 @@ final class CycleRefreshRequested extends CycleEvent {
 }
 
 final class RoutineCompleted extends CycleEvent {
-  const RoutineCompleted(this.type);
+  const RoutineCompleted(this.type, {this.waterMl});
   final RoutineType type;
+
+  /// Hydration only: amount to log instead of the default per-tap amount.
+  final int? waterMl;
 }
 
 final class RoutineSnoozed extends CycleEvent {
@@ -81,7 +84,7 @@ class CycleBloc extends Bloc<CycleEvent, CycleState> {
       if (startOfLocalDay(_clock.now(), _location) != _day) _subscribe();
       _emitSnapshot(emit);
     });
-    on<RoutineCompleted>((e, _) => _complete(e.type));
+    on<RoutineCompleted>((e, _) => _complete(e.type, waterMl: e.waterMl));
     on<RoutineSnoozed>((e, _) => _snooze(e.type));
   }
 

@@ -172,7 +172,7 @@ Strategy: **pre-schedule a rolling window of OS notifications, then reconcile it
 - `ReminderPlanner` expands each enabled routine across working hours, skipping Shield windows and applying snoozes, and returns the next fire times.
 - **iOS caps an app at 64 pending local notifications**, so the window is the next 24 h or 50 notifications, whichever is smaller (headroom for snoozes). Example: hydration every 30 min + stretch every 45 min + eye rest every 20 min over a 9 h day is about 57 per day, so the cap is real.
 - Notification IDs are deterministic (`hash(routineId, scheduledAt minute) → int32`), so re-running the planner is idempotent: cancel what's no longer planned, add what's missing, leave the rest.
-- Every scheduled notification also gets a `ReminderEvent` row (status `scheduled`) so actions and history map back to it.
+- Pending reminders live only in the OS schedule; no `ReminderEvent` row is written until a reminder fires or is acted on. A pending notification is matched back to its reminder via its payload (routines + fire time) and its deterministic id.
 
 ### Reconcile triggers
 
@@ -323,13 +323,23 @@ Each diamond is a gate: the next milestone starts only once its criterion passes
 
 ### Milestone 2 — Background scheduling & interactive notifications
 
-- [ ] `NotificationGateway`: channels, categories, zonedSchedule, deterministic IDs.
-- [ ] Rolling-window `ReconcileSchedule` + all six triggers.
-- [ ] Background action handler (Done / Snooze) with `bootstrapBackground()`.
-- [ ] workmanager periodic reconcile; Android boot receiver; inexact default + exact opt-in.
-- [ ] Deep links from notification tap to guided break screens.
+- [x] `NotificationGateway`: channels, categories, zonedSchedule, deterministic IDs.
+- [x] Rolling-window `ReconcileSchedule` + all six triggers.
+- [x] Background action handler (Done / Snooze) with `bootstrapBackground()`.
+- [x] workmanager periodic reconcile; Android boot receiver; inexact default + exact opt-in.
+- [x] Deep links from notification tap to guided break screens.
 
 **Exit:** on a Pixel, a Samsung and a Xiaomi device plus an iPhone, reminders fire within 5 min of schedule over a full work day with the app killed, after a reboot, and with Done/Snooze handled without opening the app.
+
+### Milestone 2 implementation notes
+
+- No speculative `scheduled` event rows: missed reminders are derived at day rollover in M4, and the events table is append-only.
+- Reconcile is a full replace on configChange / timezoneChange / boot and an id-diff otherwise. The exact-alarm permission is checked once per run, the time zone is read per run via `LocationProvider`, and every run is logged to `reconcile_runs` (newest 200 kept).
+- Notification ids below 1000 are reserved for diagnostics; the diff never cancels them.
+- Notification permission is primed with an in-app "Enable reminders" card; there is no automatic system prompt on launch.
+- WorkManager: Android runs an hourly periodic task with `ExistingPeriodicWorkPolicy.update`; iOS uses BGAppRefresh `com.ragheb.knightRise.reconcile`, submitted from Dart.
+- Default work week is Sun–Thu, 09:00–17:00.
+- Drift schema v2 (`app_settings.timezone_id`, `reconcile_runs`) uses drift_dev step-by-step migrations, with schema dumps in `drift_schemas/`.
 
 ### Milestone 3 — Shield Mode & settings customization
 

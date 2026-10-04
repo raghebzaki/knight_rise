@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
@@ -129,6 +130,32 @@ void main() {
       expect(gateway.log.skip(1).every((l) => l.startsWith('schedule:')), isTrue);
     });
   }
+
+  group('reserved diagnostics ids (< 1000)', () {
+    test('diff path never cancels them, but still cancels stale planner ids', () async {
+      const staleId = 123456;
+      gateway.pending = {kTestNotificationId, 999, staleId};
+
+      final run = await reconciler.reconcile(ReconcileTrigger.manual);
+
+      expect(gateway.cancelled, [staleId]);
+      expect(run.cancelled, 1);
+      expect(run.trigger, ReconcileTrigger.manual);
+    });
+
+    test('ids at the limit are ordinary planner ids', () async {
+      gateway.pending = {kReservedNotificationIdLimit};
+      await reconciler.reconcile(ReconcileTrigger.resume);
+      expect(gateway.cancelled, [kReservedNotificationIdLimit]);
+    });
+
+    test('full-replace triggers still clear them', () async {
+      gateway.pending = {kTestNotificationId};
+      final run = await reconciler.reconcile(ReconcileTrigger.configChange);
+      expect(gateway.cancelAllCalls, 1);
+      expect(run.cancelled, 1);
+    });
+  });
 
   group('exact alarms', () {
     test('precisionTiming on but not permitted -> inexact everywhere', () async {

@@ -59,6 +59,14 @@ void main() {
       expect(events.all.every((e) => e.outcome == ReminderOutcome.done), isTrue);
     });
 
+    test('waterMl overrides the per-tap default for hydration only', () async {
+      final complete = CompleteRoutine(events, settings, clock);
+      await complete(RoutineType.hydration, waterMl: 500);
+      await complete(RoutineType.hydration);
+      await complete(RoutineType.eyeRest, waterMl: 500);
+      expect(events.all.map((e) => e.waterMl), [500, 250, null]);
+    });
+
     test('snooze sets snoozedUntil = now + 10 min and stops after 3', () async {
       final snooze = SnoozeRoutine(events, clock, cairo);
       expect(await snooze(RoutineType.eyeRest), isTrue);

@@ -9,6 +9,7 @@ import 'package:knight_rise/features/notifications/data/background_entry.dart';
 import 'package:knight_rise/features/notifications/data/notification_content.dart';
 import 'package:knight_rise/features/notifications/data/notification_response_mapper.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
+import 'package:knight_rise/features/notifications/domain/pending_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_payload.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
@@ -110,13 +111,23 @@ class LocalNotificationGateway implements NotificationGateway {
       _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
 
   @override
-  Future<void> schedule(PlannedReminder reminder, {required bool exact}) async {
+  Future<void> schedule(PlannedReminder reminder, {required bool exact}) =>
+      _scheduleWithId(reminder.notificationId, reminder, exact: exact);
+
+  @override
+  Future<void> scheduleTest({required DateTime at}) => _scheduleWithId(
+    kTestNotificationId,
+    PlannedReminder(fireAt: at, types: const {RoutineType.hydration}),
+    exact: false,
+  );
+
+  Future<void> _scheduleWithId(int id, PlannedReminder reminder, {required bool exact}) async {
     final l = _l10n;
     final content = NotificationCopy.build(reminder.types, l10n: l);
     final channelId = NotificationCopy.channelFor(reminder.types);
     final primary = NotificationCopy.sortedTypes(reminder.types).first;
     await _pluginZonedSchedule(
-      id: reminder.notificationId,
+      id: id,
       title: content.title,
       body: content.body,
       when: tz.TZDateTime.from(reminder.fireAt, _location),
@@ -175,6 +186,27 @@ class LocalNotificationGateway implements NotificationGateway {
   Future<Set<int>> pendingIds() async {
     final pending = await _plugin.pendingNotificationRequests();
     return {for (final p in pending) p.id};
+  }
+
+  @override
+  Future<List<PendingReminder>> pendingReminders() async {
+    final pending = await _plugin.pendingNotificationRequests();
+    return [for (final p in pending) PendingReminder(id: p.id, payload: ReminderPayload.tryDecode(p.payload))];
+  }
+
+  @override
+  Future<bool> notificationsEnabled() async {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return await _android?.areNotificationsEnabled() ?? false;
+      case TargetPlatform.iOS:
+        return (await _ios?.checkPermissions())?.isEnabled ?? false;
+      case TargetPlatform.macOS:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return true;
+    }
   }
 
   @override

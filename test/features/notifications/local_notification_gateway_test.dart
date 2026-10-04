@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/features/notifications/data/background_entry.dart';
 import 'package:knight_rise/features/notifications/data/local_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/data/notification_response_mapper.dart';
+import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_payload.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
@@ -213,6 +214,63 @@ void main() {
       verify(() => ios.requestPermissions(alert: true, badge: true, sound: true)).called(1);
     });
 
+    test('notificationsEnabled per platform', () async {
+      when(() => android.areNotificationsEnabled()).thenAnswer((_) async => false);
+      when(() => ios.checkPermissions()).thenAnswer((_) async => _iosOptions(enabled: true));
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(await gateway.notificationsEnabled(), isFalse);
+      when(() => android.areNotificationsEnabled()).thenAnswer((_) async => true);
+      expect(await gateway.notificationsEnabled(), isTrue);
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(await gateway.notificationsEnabled(), isTrue);
+      when(() => ios.checkPermissions()).thenAnswer((_) async => _iosOptions(enabled: false));
+      expect(await gateway.notificationsEnabled(), isFalse);
+      when(() => ios.checkPermissions()).thenAnswer((_) async => null);
+      expect(await gateway.notificationsEnabled(), isFalse);
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      expect(await gateway.notificationsEnabled(), isTrue);
+    });
+
+    test('notificationsEnabled is false without a platform implementation', () async {
+      when(() => plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>())
+          .thenReturn(null);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(await gateway.notificationsEnabled(), isFalse);
+    });
+
+    test('pendingReminders decodes payloads; unknown or missing payloads are null', () async {
+      final r = PlannedReminder(fireAt: fireAt, types: const {RoutineType.hydration, RoutineType.eyeRest});
+      when(() => plugin.pendingNotificationRequests()).thenAnswer(
+        (_) async => [
+          PendingNotificationRequest(10, 't', 'b', ReminderPayload.of(r).encode()),
+          const PendingNotificationRequest(11, null, null, null),
+          const PendingNotificationRequest(12, null, null, 'garbage'),
+        ],
+      );
+      final got = await gateway.pendingReminders();
+      expect(got.map((p) => p.id), [10, 11, 12]);
+      expect(got[0].payload, ReminderPayload.of(r));
+      expect(got[0].payload!.types, r.types);
+      expect(got[0].payload!.fireAt.isAtSameMomentAs(fireAt), isTrue);
+      expect(got[1].payload, isNull);
+      expect(got[2].payload, isNull);
+    });
+
+    test('scheduleTest uses the reserved id, hydration content and inexact timing', () async {
+      await gateway.scheduleTest(at: fireAt);
+      final s = captureSchedule();
+      expect(s.id, kTestNotificationId);
+      expect(s.id, lessThan(kReservedNotificationIdLimit));
+      expect(s.when.isAtSameMomentAs(fireAt), isTrue);
+      expect(s.mode, AndroidScheduleMode.inexactAllowWhileIdle);
+      expect(s.details.android!.channelId, 'hydration');
+      final payload = ReminderPayload.tryDecode(s.payload)!;
+      expect(payload.types, {RoutineType.hydration});
+      expect(payload.fireAt.isAtSameMomentAs(fireAt), isTrue);
+    });
+
     test('canScheduleExact true when no android implementation', () async {
       when(() => plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>())
           .thenReturn(null);
@@ -276,4 +334,14 @@ NotificationResponse _response(String? actionId, String? payload, {int? nid}) =>
   id: nid,
   actionId: actionId,
   payload: payload,
+);
+
+NotificationsEnabledOptions _iosOptions({required bool enabled}) => NotificationsEnabledOptions(
+  isEnabled: enabled,
+  isSoundEnabled: enabled,
+  isAlertEnabled: enabled,
+  isBadgeEnabled: enabled,
+  isProvisionalEnabled: false,
+  isCriticalEnabled: false,
+  isProvidesAppNotificationSettingsEnabled: false,
 );

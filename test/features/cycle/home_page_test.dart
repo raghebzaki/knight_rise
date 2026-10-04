@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +8,9 @@ import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/home_page.dart';
+import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
+import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
@@ -17,7 +21,12 @@ import '../../helpers/fakes.dart';
 import '../../helpers/tz.dart';
 
 void main() {
-  Future<FakeReminderEventRepository> pumpHome(WidgetTester tester, DateTime now) async {
+  Future<FakeReminderEventRepository> pumpHome(
+    WidgetTester tester,
+    DateTime now, {
+    FakeNotificationGateway? gateway,
+    FakeScheduleReconciler? reconciler,
+  }) async {
     final events = FakeReminderEventRepository();
     final settings = FakeSettingsRepository();
     final clock = FixedClock(now);
@@ -31,6 +40,16 @@ void main() {
         child: MultiBlocProvider(
           providers: [
             BlocProvider(create: (_) => ThemeCubit(settings)),
+            BlocProvider(
+              create: (_) {
+                final cubit = NotificationPermissionCubit(
+                  gateway ?? FakeNotificationGateway(),
+                  reconciler ?? FakeScheduleReconciler(),
+                );
+                unawaited(cubit.check());
+                return cubit;
+              },
+            ),
             BlocProvider(
               create: (_) => CycleBloc(
                 WatchCycleInputs(FakeRoutineRepository(), FakeWorkScheduleRepository(), events, settings),
@@ -87,6 +106,79 @@ void main() {
     await pumpHome(tester, at(cairo, 2026, 10, 10, 12)); // Saturday
     expect(find.text('Off duty'), findsWidgets);
     expect(find.textContaining('Back on duty'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  group('notification permission card', () {
+    final now = at(cairo, 2026, 10, 5, 9, 50);
+
+    testWidgets('hidden while notifications are enabled', (tester) async {
+      await pumpHome(tester, now);
+      expect(find.text('Enable reminders'), findsNothing);
+      expect(find.text('Enable'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('shown when disabled; no system prompt until Enable is tapped', (tester) async {
+      final gateway = FakeNotificationGateway()..enabled = false;
+      await pumpHome(tester, now, gateway: gateway);
+
+      expect(find.text('Enable reminders'), findsOneWidget);
+      expect(find.text('Knight Rise needs notifications to call you to your breaks.'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Enable'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Not now'), findsOneWidget);
+      expect(gateway.requestPermissionCalls, 0);
+      await unmount(tester);
+    });
+
+    testWidgets('Not now hides it for the session', (tester) async {
+      final gateway = FakeNotificationGateway()..enabled = false;
+      await pumpHome(tester, now, gateway: gateway);
+
+      await tester.tap(find.text('Not now'));
+      await tester.pump();
+
+      expect(find.text('Enable reminders'), findsNothing);
+      expect(gateway.requestPermissionCalls, 0);
+      await unmount(tester);
+    });
+
+    testWidgets('Enable -> granted: card disappears and the schedule is armed', (tester) async {
+      final gateway = FakeNotificationGateway()..enabled = false;
+      final reconciler = FakeScheduleReconciler();
+      await pumpHome(tester, now, gateway: gateway, reconciler: reconciler);
+
+      await tester.tap(find.text('Enable'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(gateway.requestPermissionCalls, 1);
+      expect(reconciler.calls, [ReconcileTrigger.manual]);
+      expect(find.text('Enable reminders'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('Enable -> refused: body points to system settings', (tester) async {
+      final gateway = FakeNotificationGateway()
+        ..enabled = false
+        ..grantOnRequest = false;
+      await pumpHome(tester, now, gateway: gateway);
+
+      await tester.tap(find.text('Enable'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Enable reminders'), findsOneWidget);
+      expect(find.text('Notifications are off. Turn them on in system settings.'), findsOneWidget);
+      expect(find.text('Knight Rise needs notifications to call you to your breaks.'), findsNothing);
+      await unmount(tester);
+    });
+  });
+
+  testWidgets('dev builds show the diagnostics entry next to the gallery', (tester) async {
+    await pumpHome(tester, at(cairo, 2026, 10, 5, 9, 50));
+    expect(find.byTooltip('Diagnostics'), findsOneWidget);
+    expect(find.byTooltip('Widget gallery'), findsOneWidget);
     await unmount(tester);
   });
 }

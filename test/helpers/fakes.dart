@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:knight_rise/core/time/device_timezone.dart';
 import 'package:knight_rise/core/time/location_provider.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
+import 'package:knight_rise/features/notifications/domain/pending_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
@@ -181,6 +182,19 @@ class FakeNotificationGateway implements NotificationGateway {
   Set<int> pending = {};
   bool exactAllowed = true;
 
+  /// What [notificationsEnabled] returns.
+  bool enabled = true;
+
+  /// When true, [requestPermission] flips [enabled] on (user taps Allow).
+  bool grantOnRequest = true;
+  int requestPermissionCalls = 0;
+
+  /// What [pendingReminders] returns; defaults to payload-less entries for [pending].
+  List<PendingReminder>? pendingReminderList;
+
+  /// Fire times passed to [scheduleTest].
+  final List<DateTime> testScheduled = [];
+
   /// When set, [schedule] throws it.
   Object? throwOnSchedule;
 
@@ -218,7 +232,24 @@ class FakeNotificationGateway implements NotificationGateway {
   Future<Set<int>> pendingIds() async => {...pending};
 
   @override
-  Future<bool> requestPermission() async => true;
+  Future<bool> requestPermission() async {
+    requestPermissionCalls++;
+    if (grantOnRequest) enabled = true;
+    return enabled;
+  }
+
+  @override
+  Future<bool> notificationsEnabled() async => enabled;
+
+  @override
+  Future<List<PendingReminder>> pendingReminders() async =>
+      pendingReminderList ?? [for (final id in pending) PendingReminder(id: id)];
+
+  @override
+  Future<void> scheduleTest({required DateTime at}) async {
+    testScheduled.add(at);
+    log.add('scheduleTest');
+  }
 
   @override
   Future<bool> canScheduleExact() async {

@@ -26,7 +26,10 @@ const Set<ReconcileTrigger> _fullReplaceTriggers = {
 ///
 /// Full-replace triggers cancel everything and schedule the whole plan; all
 /// other triggers diff by deterministic notification id (cancel stale, add
-/// missing, leave the rest).
+/// missing, leave the rest). The diff path never cancels ids below
+/// [kReservedNotificationIdLimit]: those are reserved for the diagnostics test
+/// notification, which the plan knows nothing about. Full-replace triggers
+/// (`cancelAll`) still clear it.
 ///
 /// Concurrency: the UI and background isolates may reconcile at nearly the
 /// same time. That is acceptable because the diff is idempotent: both compute
@@ -99,7 +102,7 @@ class ReconcileSchedule implements ScheduleReconciler {
         }
       } else {
         final desired = {for (final r in plan) r.notificationId};
-        for (final id in pending.difference(desired)) {
+        for (final id in pending.difference(desired).where((id) => id >= kReservedNotificationIdLimit)) {
           await _gateway.cancel(id);
           cancelled++;
         }
