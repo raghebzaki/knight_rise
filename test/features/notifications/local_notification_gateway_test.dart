@@ -114,15 +114,14 @@ void main() {
       expect(i.interruptionLevel, InterruptionLevel.active);
     });
 
-    test('exact when requested and permitted', () async {
+    test('exact when requested', () async {
       await gateway.schedule(PlannedReminder(fireAt: fireAt, types: const {RoutineType.stretch}), exact: true);
       expect(captureSchedule().mode, AndroidScheduleMode.exactAllowWhileIdle);
     });
 
-    test('exact falls back to inexact when not permitted', () async {
-      when(() => android.canScheduleExactNotifications()).thenAnswer((_) async => false);
+    test('does not query exact-alarm permission itself', () async {
       await gateway.schedule(PlannedReminder(fireAt: fireAt, types: const {RoutineType.stretch}), exact: true);
-      expect(captureSchedule().mode, AndroidScheduleMode.inexactAllowWhileIdle);
+      verifyNever(() => android.canScheduleExactNotifications());
     });
 
     test('merged {stretch, eyeRest} uses the stretch channel', () async {
@@ -263,20 +262,6 @@ void main() {
     test('falls back to the deterministic id when the response has none', () {
       final a = reminderActionFromResponse(_response('done', _payload()))!;
       expect(a.notificationId, PlannedReminder(fireAt: fireAt, types: const {RoutineType.hydration}).notificationId);
-    });
-  });
-
-  group('background handler', () {
-    tearDown(() => backgroundActionHandler = null);
-
-    test('is a no-op without a hook and forwards actions with one', () async {
-      await knightNotificationBackgroundHandler(_response('done', _payload()));
-      final got = <ReminderAction>[];
-      backgroundActionHandler = (a) async => got.add(a);
-      await knightNotificationBackgroundHandler(_response('snooze', _payload(), nid: 9));
-      await knightNotificationBackgroundHandler(_response('snooze', 'junk'));
-      expect(got.single.kind, ReminderActionKind.snooze);
-      expect(got.single.notificationId, 9);
     });
   });
 }

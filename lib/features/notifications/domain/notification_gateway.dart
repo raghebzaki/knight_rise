@@ -6,6 +6,8 @@ abstract interface class NotificationGateway {
   /// Channels, iOS categories, foreground tap/action callback. Idempotent.
   Future<void> initialize({required void Function(ReminderAction action) onForegroundAction});
 
+  /// Schedules [reminder]. The caller decides [exact] (see [canScheduleExact]);
+  /// the gateway does not re-check the permission per call.
   Future<void> schedule(PlannedReminder reminder, {required bool exact});
 
   Future<void> cancel(int id);

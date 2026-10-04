@@ -1,8 +1,12 @@
 import 'dart:async';
 
 import 'package:knight_rise/core/time/device_timezone.dart';
+import 'package:knight_rise/core/time/location_provider.dart';
+import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
+import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
+import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
 import 'package:knight_rise/features/scheduler/domain/repositories/reconcile_run_repository.dart';
@@ -12,6 +16,7 @@ import 'package:knight_rise/features/settings/domain/entities/app_settings.dart'
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 import 'package:knight_rise/features/work_hours/domain/repositories/work_schedule_repository.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 /// In-memory repositories that behave like the Drift ones: every watch()
 /// emits the current value immediately and again after each write.
@@ -152,6 +157,75 @@ class FakeReconcileRunRepository implements ReconcileRunRepository {
   @override
   Stream<List<ReconcileRun>> watchRecent({int limit = 50}) => Stream.value(runs.reversed.take(limit).toList());
 
+  final List<int> pruneKeeps = [];
+
   @override
-  Future<void> prune({int keep = 200}) async {}
+  Future<void> prune({int keep = 200}) async => pruneKeeps.add(keep);
+}
+
+class FakeLocationProvider implements LocationProvider {
+  FakeLocationProvider(this.location);
+  tz.Location location;
+
+  @override
+  tz.Location get current => location;
+}
+
+/// Records every call. [pending] is what [pendingIds] returns; [schedule] and
+/// [cancel] do not mutate it, so tests control the "OS state" explicitly.
+class FakeNotificationGateway implements NotificationGateway {
+  final List<({PlannedReminder reminder, bool exact})> scheduled = [];
+  final List<int> cancelled = [];
+  int cancelAllCalls = 0;
+  int canScheduleExactCalls = 0;
+  Set<int> pending = {};
+  bool exactAllowed = true;
+
+  /// When set, [schedule] throws it.
+  Object? throwOnSchedule;
+
+  /// Call order, e.g. `cancelAll`, `schedule:<id>`, `cancel:<id>`.
+  final List<String> log = [];
+
+  @override
+  Future<void> initialize({required void Function(ReminderAction action) onForegroundAction}) async {}
+
+  @override
+  Future<void> schedule(PlannedReminder reminder, {required bool exact}) async {
+    final err = throwOnSchedule;
+    if (err != null) {
+      // Tests throw arbitrary objects on purpose.
+      // ignore: only_throw_errors
+      throw err;
+    }
+    scheduled.add((reminder: reminder, exact: exact));
+    log.add('schedule:${reminder.notificationId}');
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    cancelled.add(id);
+    log.add('cancel:$id');
+  }
+
+  @override
+  Future<void> cancelAll() async {
+    cancelAllCalls++;
+    log.add('cancelAll');
+  }
+
+  @override
+  Future<Set<int>> pendingIds() async => {...pending};
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<bool> canScheduleExact() async {
+    canScheduleExactCalls++;
+    return exactAllowed;
+  }
+
+  @override
+  Future<ReminderAction?> launchAction() async => null;
 }

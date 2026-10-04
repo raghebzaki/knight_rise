@@ -62,7 +62,23 @@ class ScheduleSyncService {
     _listen(_workSchedule.watch(), ReconcileTrigger.configChange);
     _listen(_settings.watch().map((s) => s.precisionTiming).distinct(), ReconcileTrigger.configChange);
     _subscribeEvents();
+    await _persistTimezoneIfUnset();
+    if (_disposed) return;
     await _run(ReconcileTrigger.launch);
+  }
+
+  /// First launch: remember the device zone so later resumes can detect a
+  /// change. Does not emit [timezoneChanged]; the location was already
+  /// resolved from the device at startup.
+  Future<void> _persistTimezoneIfUnset() async {
+    try {
+      final settings = await _settings.get();
+      if (settings.timezoneId != null) return;
+      final id = await _deviceTimezone.currentId();
+      if (id != null) await _settings.save(settings.copyWith(timezoneId: id));
+    } on Object catch (e, st) {
+      debugPrint('Timezone persist failed: $e\n$st');
+    }
   }
 
   Future<void> onResume() async {

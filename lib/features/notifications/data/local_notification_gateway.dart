@@ -111,11 +111,6 @@ class LocalNotificationGateway implements NotificationGateway {
 
   @override
   Future<void> schedule(PlannedReminder reminder, {required bool exact}) async {
-    var useExact = exact;
-    if (useExact && !await canScheduleExact()) {
-      debugPrint('Knight Rise: exact alarms not permitted, scheduling #${reminder.notificationId} inexact');
-      useExact = false;
-    }
     final l = _l10n;
     final content = NotificationCopy.build(reminder.types, l10n: l);
     final channelId = NotificationCopy.channelFor(reminder.types);
@@ -147,7 +142,7 @@ class LocalNotificationGateway implements NotificationGateway {
           interruptionLevel: InterruptionLevel.active,
         ),
       ),
-      mode: useExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle,
+      mode: exact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle,
       payload: ReminderPayload.of(reminder).encode(),
     );
   }

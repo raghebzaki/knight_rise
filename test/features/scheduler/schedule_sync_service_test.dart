@@ -168,6 +168,38 @@ void main() {
     });
   });
 
+  test('start persists the device timezone on first launch before reconciling, without emitting', () {
+    run((async) {
+      var emitted = 0;
+      service.timezoneChanged.listen((_) => emitted++);
+      expect(settings.current.timezoneId, isNull);
+      service.start();
+      async.flushMicrotasks();
+      expect(settings.current.timezoneId, 'Africa/Cairo');
+      expect(reconciler.calls, [ReconcileTrigger.launch]);
+      expect(emitted, 0);
+    });
+  });
+
+  test('start keeps an already stored timezone id', () {
+    run((async) {
+      settings.save(const AppSettings().copyWith(timezoneId: 'Europe/Paris'));
+      service.start();
+      async.flushMicrotasks();
+      expect(settings.current.timezoneId, 'Europe/Paris');
+    });
+  });
+
+  test('start leaves timezone unset when the device lookup fails', () {
+    run((async) {
+      deviceTz.id = null;
+      service.start();
+      async.flushMicrotasks();
+      expect(settings.current.timezoneId, isNull);
+      expect(reconciler.calls, [ReconcileTrigger.launch]);
+    });
+  });
+
   test('onResume with same timezone -> resume, id persisted when it was null', () {
     run((async) {
       service.start();
