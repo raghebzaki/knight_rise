@@ -64,7 +64,7 @@ void main() {
     expect(find.text('Reach 70% of every routine to extend your streak.'), findsOneWidget);
 
     final hydration = find.byKey(const Key('quest-routine-hydration'));
-    expect(find.descendant(of: hydration, matching: find.text('500 / 2000 ml')), findsOneWidget);
+    expect(find.descendant(of: hydration, matching: find.text('500 / 2,000 ml')), findsOneWidget);
     expect(find.descendant(of: hydration, matching: find.text('Last at 09:00')), findsOneWidget);
     final stretch = find.byKey(const Key('quest-routine-stretch'));
     expect(find.descendant(of: stretch, matching: find.text('1 / 6')), findsOneWidget);
@@ -77,7 +77,7 @@ void main() {
 
     // Screen readers get each ring's value.
     expect(
-      find.bySemanticsLabel(RegExp('Hydration 500 / 2000 ml, Quick stretch 1 / 6, Eye rest 0 / 12')),
+      find.bySemanticsLabel(RegExp('Hydration 500 / 2,000 ml, Quick stretch 1 / 6, Eye rest 0 / 12')),
       findsOneWidget,
     );
     await unmount(tester);
@@ -179,31 +179,21 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('a rank-up shows the celebration once and records it', (tester) async {
-    final h = QuestLogHarness(
-      now: at(cairo, 2026, 10, 12, 16),
-      history: [
-        for (final n in [4, 5, 6, 7, 8, 11]) pastDay(d(n)),
-        pastDay(d(9), workDay: false),
-        pastDay(d(10), workDay: false),
-      ],
-    );
-    for (final r in Routine.defaults) {
-      for (var i = 0; i < r.dailyTarget; i++) {
-        await h.events.add(done(r.type, 10));
-      }
-    }
+  testWidgets('water chips are buttons spoken with what they do', (tester) async {
+    final handle = tester.ensureSemantics();
+    final h = QuestLogHarness(now: at(cairo, 2026, 10, 12, 11));
     await pumpPage(tester, h);
-    await tester.pump(const Duration(seconds: 1));
-    expect(find.byKey(const Key('rank-up-dialog')), findsOneWidget);
-    expect(find.text('RANK UP!'), findsOneWidget);
-    expect(find.text('You rose to Knight with a 7-day streak.'), findsOneWidget);
-    expect(h.settings.current.rankCelebratedOn, d(12));
-
-    await tester.tap(find.text('Onward'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('rank-up-dialog')), findsNothing);
-    expect(find.text('KNIGHT'), findsOneWidget);
+    expect(find.bySemanticsLabel('Log 250 ml of water'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Log 500 ml of water')),
+      matchesSemantics(label: 'Log 500 ml of water', isButton: true, hasTapAction: true),
+    );
+    await tester.tap(find.bySemanticsLabel('Log 500 ml of water'));
+    await tester.pump();
+    await tester.pump();
+    expect(h.events.all.single.waterMl, 500);
+    handle.dispose();
+    await tester.pump(kWaterUndoWindow + const Duration(seconds: 1));
     await unmount(tester);
   });
 }

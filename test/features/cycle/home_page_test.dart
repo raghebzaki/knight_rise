@@ -121,7 +121,7 @@ void main() {
     expect(find.text("TODAY'S QUEST"), findsOneWidget);
     expect(find.text('DUE NOW'), findsOneWidget);
     expect(find.text('Hydration'), findsWidgets);
-    expect(find.text('0 / 2000 ml'), findsOneWidget); // hydration counts ml in the quest hero
+    expect(find.text('0 / 2,000 ml'), findsOneWidget); // hydration counts ml in the quest hero
 
     await tester.tap(find.text('Claim break'));
     await tester.pump();
@@ -132,7 +132,7 @@ void main() {
     expect(events.all.where((e) => e.type == RoutineType.hydration && e.outcome == ReminderOutcome.done), hasLength(1));
     expect(events.all.where((e) => e.type == RoutineType.eyeRest && e.outcome == ReminderOutcome.done), hasLength(1));
     expect(find.text('250 ml today'), findsOneWidget);
-    expect(find.text('250 / 2000 ml'), findsOneWidget);
+    expect(find.text('250 / 2,000 ml'), findsOneWidget);
     expect(find.text('NEXT UP'), findsOneWidget);
 
     await unmount(tester);

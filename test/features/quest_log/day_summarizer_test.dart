@@ -80,7 +80,7 @@ void main() {
 
   test('qualifies when every enabled routine reaches 70 % (hydration in ml)', () {
     final events = [
-      ...many(cairo, RoutineType.hydration, 3, ml: 500), // 1500 / 2000 ml = 75 %
+      ...many(cairo, RoutineType.hydration, 3, ml: 500), // 1500 / 2,000 ml = 75 %
       ...many(cairo, RoutineType.stretch, 5), // 5 / 6 = 83 %
       ...many(cairo, RoutineType.eyeRest, 9), // 9 / 12 = 75 %
     ];

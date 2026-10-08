@@ -11,6 +11,7 @@ import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
+import 'package:knight_rise/core/theme/text_scale.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
 import 'package:knight_rise/core/widgets/knight_error_view.dart';
@@ -201,7 +202,12 @@ class _Dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.lg,
+        KnightSpacing.sm,
+        KnightSpacing.lg,
+        KnightSpacing.xxl,
+      ),
       children: [
         const _NotificationPermissionCard(),
         if (showPausedBanner) _PausedBanner(onDismiss: onDismissPaused),
@@ -308,7 +314,7 @@ class _PausedBanner extends StatelessWidget {
               ],
             ),
             Align(
-              alignment: Alignment.centerRight,
+              alignment: AlignmentDirectional.centerEnd,
               child: TextButton(
                 key: const Key('pausedOpenHealth'),
                 onPressed: () => context.push(ReservedRoutes.deviceHealth),
@@ -340,7 +346,7 @@ class _HealthChip extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: KnightSpacing.lg),
           child: Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: ActionChip(
               key: const Key('healthChip'),
               avatar: Icon(Icons.warning_amber_rounded, size: 18, color: context.knight.warning),
@@ -405,7 +411,7 @@ class _QuestHero extends StatelessWidget {
                   children: [
                     Icon(v.type.icon, size: 16, color: tokens.routineColor(v.type)),
                     const SizedBox(width: KnightSpacing.xs),
-                    Text(_progressText(l, snapshot, v), style: text.labelMedium),
+                    Flexible(child: Text(_progressText(l, snapshot, v), style: text.labelMedium)),
                   ],
                 ),
             ],
@@ -432,32 +438,41 @@ class _NextUpCard extends StatelessWidget {
     final next = snapshot.nextUp;
 
     if (due.isNotEmpty) {
+      final title = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.dueNow.toUpperCase(), style: text.labelMedium?.copyWith(color: tokens.warning)),
+          const SizedBox(height: KnightSpacing.xs),
+          Text(due.map((v) => v.type.label(l)).join(' + '), style: text.titleLarge),
+        ],
+      );
+      final claim = FilledButton(
+        onPressed: () {
+          context.haptic(HapticKind.success);
+          final bloc = context.read<CycleBloc>();
+          for (final v in due) {
+            bloc.add(RoutineCompleted(v.type));
+          }
+        },
+        child: Text(l.claimBreak),
+      );
       return KnightCard(
         glow: true,
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: context.isLargeText
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(l.dueNow.toUpperCase(), style: text.labelMedium?.copyWith(color: tokens.warning)),
-                  const SizedBox(height: KnightSpacing.xs),
-                  Text(due.map((v) => v.type.label(l)).join(' + '), style: text.titleLarge),
+                  title,
+                  const SizedBox(height: KnightSpacing.md),
+                  claim,
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: title),
+                  claim,
                 ],
               ),
-            ),
-            FilledButton(
-              onPressed: () {
-                context.haptic(HapticKind.success);
-                final bloc = context.read<CycleBloc>();
-                for (final v in due) {
-                  bloc.add(RoutineCompleted(v.type));
-                }
-              },
-              child: Text(l.claimBreak),
-            ),
-          ],
-        ),
       );
     }
 

@@ -105,7 +105,12 @@ class _StepFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.xl, KnightSpacing.lg, KnightSpacing.xl, KnightSpacing.lg),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.xl,
+        KnightSpacing.lg,
+        KnightSpacing.xl,
+        KnightSpacing.lg,
+      ),
       child: child,
     );
   }
@@ -120,7 +125,7 @@ class _Progress extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final step = context.select<OnboardingCubit, int>((c) => c.state.step.index);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.xl, KnightSpacing.lg, KnightSpacing.xl, 0),
+      padding: const EdgeInsetsDirectional.fromSTEB(KnightSpacing.xl, KnightSpacing.lg, KnightSpacing.xl, 0),
       child: Semantics(
         label: l.onboardingStepLabel(step + 1, OnboardingStep.values.length),
         child: ExcludeSemantics(
@@ -169,7 +174,12 @@ class _NavBar extends StatelessWidget {
         : l.onboardingNext;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.xl, KnightSpacing.sm, KnightSpacing.xl, KnightSpacing.lg),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.xl,
+        KnightSpacing.sm,
+        KnightSpacing.xl,
+        KnightSpacing.lg,
+      ),
       child: Row(
         children: [
           if (!first) ...[

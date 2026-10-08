@@ -134,7 +134,7 @@ void main() {
       );
       final hydration = s.viewOf(RoutineType.hydration)!;
       expect(hydration.doneToday, 1);
-      expect(hydration.progress, 0.25); // 500 / 2000 ml, not 1 / 8
+      expect(hydration.progress, 0.25); // 500 / 2,000 ml, not 1 / 8
       expect(s.viewOf(RoutineType.stretch)!.progress, closeTo(1 / 6, 1e-9));
     });
 

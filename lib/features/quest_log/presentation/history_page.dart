@@ -78,7 +78,12 @@ class _HistoryBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final series = state.series;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.lg,
+        KnightSpacing.sm,
+        KnightSpacing.lg,
+        KnightSpacing.xxl,
+      ),
       children: [
         _Filters(state: state),
         const SizedBox(height: KnightSpacing.lg),
@@ -285,7 +290,6 @@ class _StatTiles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).toLanguageTag();
     final rate = stats.completionRate;
     final water = stats.averageWaterMl;
     final tiles = [
@@ -304,7 +308,7 @@ class _StatTiles extends StatelessWidget {
       _StatTile(
         key: const Key('stat-water'),
         label: l.statWater,
-        value: water == null ? l.statNone : l.statWaterValue(NumberFormat.decimalPattern(locale).format(water)),
+        value: water == null ? l.statNone : l.statWaterValue(water),
         detail: l.statPerWorkDay,
       ),
       _StatTile(

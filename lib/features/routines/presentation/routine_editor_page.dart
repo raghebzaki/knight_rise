@@ -89,7 +89,7 @@ class _RoutineEditorView extends StatelessWidget {
             body: draft == null
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
                       KnightSpacing.lg,
                       KnightSpacing.sm,
                       KnightSpacing.lg,

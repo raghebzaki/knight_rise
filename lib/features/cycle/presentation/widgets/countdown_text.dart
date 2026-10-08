@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 /// Live `MM:SS` / `H:MM:SS` countdown to [target].
 ///
@@ -21,6 +22,10 @@ class CountdownText extends StatefulWidget {
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
+
+  /// Whole minutes for screen readers, rounded up ("4:59" reads as 5).
+  static int spokenMinutes(Duration remaining) =>
+      remaining.isNegative ? 0 : (remaining.inSeconds + 59) ~/ Duration.secondsPerMinute;
 
   @override
   State<CountdownText> createState() => _CountdownTextState();
@@ -59,8 +64,10 @@ class _CountdownTextState extends State<CountdownText> {
     final now = context.read<Clock>().now();
     final remaining = widget.target.difference(now);
     return Semantics(
-      liveRegion: false,
-      label: '${remaining.inMinutes} minutes remaining',
+      // The spoken label changes at most once a minute, so the live region
+      // is announced per minute, never per second.
+      liveRegion: true,
+      label: AppLocalizations.of(context).countdownRemaining(CountdownText.spokenMinutes(remaining)),
       child: ExcludeSemantics(child: Text(CountdownText.format(remaining), style: widget.style)),
     );
   }

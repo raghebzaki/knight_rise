@@ -97,7 +97,7 @@ class _WorkHoursView extends StatelessWidget {
             body: !state.loaded
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
                       KnightSpacing.lg,
                       KnightSpacing.sm,
                       KnightSpacing.lg,
@@ -158,7 +158,12 @@ class _DayCard extends StatelessWidget {
                 _WindowRow(weekday: weekday, index: i, window: windows[i], name: name),
               for (final issue in issues)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.xs, KnightSpacing.lg, 0),
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    KnightSpacing.lg,
+                    KnightSpacing.xs,
+                    KnightSpacing.lg,
+                    0,
+                  ),
                   child: Text(
                     _issueText(l, issue, windows),
                     key: Key('issue$weekday'),
@@ -213,8 +218,8 @@ class _WindowRow extends StatelessWidget {
       onDismissed: (_) => cubit.removeWindow(weekday, index),
       background: Container(
         color: scheme.error.withValues(alpha: 0.2),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: KnightSpacing.lg),
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsetsDirectional.only(end: KnightSpacing.lg),
         child: Icon(Icons.delete_outline, color: scheme.error),
       ),
       child: ListTile(

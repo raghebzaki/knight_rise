@@ -56,7 +56,7 @@ class _DeviceHealthPageState extends State<DeviceHealthPage> {
             final android = report.platform == HealthPlatform.android;
             final ios = report.platform == HealthPlatform.ios;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(
+              padding: const EdgeInsetsDirectional.fromSTEB(
                 KnightSpacing.lg,
                 KnightSpacing.sm,
                 KnightSpacing.lg,
@@ -169,7 +169,7 @@ class _PrecisionRow extends StatelessWidget {
         children: [
           if (issue != null)
             Padding(
-              padding: const EdgeInsets.only(right: KnightSpacing.sm),
+              padding: const EdgeInsetsDirectional.only(end: KnightSpacing.sm),
               child: FilledButton(
                 key: const Key('healthPrecisionFix'),
                 onPressed: () => cubit.fix(HealthKind.exactAlarms),
@@ -270,7 +270,7 @@ class _OemGuideCard extends StatelessWidget {
           Text(l.healthMore, style: text.labelSmall?.copyWith(color: context.knight.textMuted)),
           const SizedBox(height: KnightSpacing.md),
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: OutlinedButton(
               key: const Key('healthOpenSettings'),
               onPressed: () => context.read<DeviceHealthCubit>().openOemSettings(guide),

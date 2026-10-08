@@ -40,7 +40,8 @@
   "@waterToday": {
     "placeholders": {
       "ml": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },
@@ -48,10 +49,12 @@
   "@waterProgress": {
     "placeholders": {
       "ml": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       },
       "target": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },
@@ -119,7 +122,8 @@
   "@mlAmount": {
     "placeholders": {
       "ml": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },
@@ -298,7 +302,8 @@
   "@routineEditorHydrationTotal": {
     "placeholders": {
       "perTap": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       },
       "total": {
         "type": "int",
@@ -490,7 +495,8 @@
   "@waterLogged": {
     "placeholders": {
       "ml": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },
@@ -598,7 +604,8 @@
   "@statWaterValue": {
     "placeholders": {
       "ml": {
-        "type": "String"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },
@@ -643,5 +650,22 @@
   "questCleanSlateBody": "Complete a break or log water to light up the rings. Your streak starts with your first full work day.",
   "errorTitle": "Something went wrong",
   "errorBody": "Your data is safe. Try again in a moment.",
-  "errorRetry": "Try again"
+  "errorRetry": "Try again",
+  "countdownRemaining": "{minutes, plural, =0{Less than a minute remaining} =1{1 minute remaining} other{{minutes} minutes remaining}}",
+  "@countdownRemaining": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "waterLogAction": "Log {ml} ml of water",
+  "@waterLogAction": {
+    "placeholders": {
+      "ml": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  }
 }

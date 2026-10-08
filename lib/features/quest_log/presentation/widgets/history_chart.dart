@@ -166,7 +166,8 @@ class HistoryChart extends StatelessWidget {
                             final day = days[group.x];
                             return BarTooltipItem(
                               '${DateFormat.MMMEd(locale).format(day.date)}\n',
-                              theme.textTheme.labelSmall!.copyWith(color: tokens.textMuted),
+                              // onSurfaceVariant: muted text is too faint on the raised tooltip.
+                              theme.textTheme.labelSmall!.copyWith(color: scheme.onSurfaceVariant),
                               children: [
                                 TextSpan(
                                   text: historyDayStatus(l, day),

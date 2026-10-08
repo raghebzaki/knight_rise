@@ -70,13 +70,13 @@ class KnightPalette {
     outlineStrong: Color(0xFF5B6B87),
     onSurface: Color(0xFFE6EDF5),
     onSurfaceVariant: Color(0xFFA7B4C8),
-    textMuted: Color(0xFF6F7E96),
+    textMuted: Color(0xFF7686A0), // ≥ 4.5:1 on background and surface
     glow: Color(0x4D00E5FF), // 30%
     success: Color(0xFF2EE6A6),
     warning: Color(0xFFFFB547),
     error: Color(0xFFFF5C7A),
     hydration: Color(0xFF00E5FF),
-    stretch: Color(0xFF2EE6A6),
+    stretch: Color(0xFFBCEC3B), // neon lime: distinct from hydration, eye rest and the success status
     eyeRest: Color(0xFF8FA8FF),
   );
 
@@ -91,16 +91,16 @@ class KnightPalette {
     surface: Color(0xFF05080F),
     surfaceContainerHigh: Color(0xFF0C1322),
     outline: Color(0xFF263248),
-    outlineStrong: Color(0xFF475570),
+    outlineStrong: Color(0xFF52617E), // ≥ 3:1 on surface (Switch off thumb, outlined buttons)
     onSurface: Color(0xFFE6EDF5),
     onSurfaceVariant: Color(0xFF9AA7BC),
-    textMuted: Color(0xFF64738A),
+    textMuted: Color(0xFF72819A), // ≥ 4.5:1 on background and surface
     glow: Color(0x6600E5FF), // 40%
     success: Color(0xFF2EE6A6),
     warning: Color(0xFFFFB547),
     error: Color(0xFFFF5C7A),
     hydration: Color(0xFF00E5FF),
-    stretch: Color(0xFF2EE6A6),
+    stretch: Color(0xFFBCEC3B), // neon lime: distinct from hydration, eye rest and the success status
     eyeRest: Color(0xFF8FA8FF),
   );
 

@@ -164,7 +164,12 @@ class _StepFrame extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final color = context.knight.routineColor(type);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.lg,
+        KnightSpacing.sm,
+        KnightSpacing.lg,
+        KnightSpacing.xxl,
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),

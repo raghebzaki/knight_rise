@@ -47,7 +47,12 @@ class DiagnosticsView extends StatelessWidget {
         builder: (context, state) {
           if (!state.loaded) return const Center(child: CircularProgressIndicator());
           return ListView(
-            padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              KnightSpacing.lg,
+              KnightSpacing.sm,
+              KnightSpacing.lg,
+              KnightSpacing.xxl,
+            ),
             children: [
               if (state.error case final error?) ...[
                 Text(error, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -204,7 +209,7 @@ class _PendingSection extends StatelessWidget {
                 ),
                 for (final t in sortedTypes(p.payload?.types ?? const <RoutineType>{}))
                   Padding(
-                    padding: const EdgeInsets.only(right: KnightSpacing.xs),
+                    padding: const EdgeInsetsDirectional.only(end: KnightSpacing.xs),
                     child: Icon(t.icon, size: 16, color: tokens.routineColor(t)),
                   ),
                 Expanded(

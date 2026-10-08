@@ -67,7 +67,12 @@ class _SettingsView extends StatelessWidget {
           if (!state.loaded) return const Center(child: CircularProgressIndicator());
           final cubit = context.read<SettingsCubit>();
           return ListView(
-            padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              KnightSpacing.lg,
+              KnightSpacing.sm,
+              KnightSpacing.lg,
+              KnightSpacing.xxl,
+            ),
             children: [
               _Group(
                 title: l.settingsAppearance,
@@ -189,7 +194,12 @@ class _StreakGoalState extends State<_StreakGoal> {
       SettingsCubit.streakGoalMax.toDouble(),
     );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.md, KnightSpacing.lg, KnightSpacing.sm),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.lg,
+        KnightSpacing.md,
+        KnightSpacing.lg,
+        KnightSpacing.sm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -229,7 +239,7 @@ class _Group extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(KnightSpacing.xs, KnightSpacing.sm, 0, KnightSpacing.sm),
+            padding: const EdgeInsetsDirectional.fromSTEB(KnightSpacing.xs, KnightSpacing.sm, 0, KnightSpacing.sm),
             child: Text(title.toUpperCase(), style: text.labelSmall?.copyWith(color: context.knight.textMuted)),
           ),
           KnightCard(

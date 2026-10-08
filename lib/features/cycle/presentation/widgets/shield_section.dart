@@ -30,7 +30,7 @@ class ShieldEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: AlignmentDirectional.centerStart,
       child: OutlinedButton.icon(
         onPressed: () => _openSheet(context),
         icon: const Icon(Icons.shield_outlined),
@@ -74,7 +74,7 @@ class _PresetSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, 0, KnightSpacing.lg, KnightSpacing.sm),
+            padding: const EdgeInsetsDirectional.fromSTEB(KnightSpacing.lg, 0, KnightSpacing.lg, KnightSpacing.sm),
             child: Text(l.shieldSheetTitle, style: text.titleLarge),
           ),
           tile(l.shieldPresetFocus, Icons.center_focus_strong_outlined, ShieldPreset.min25),

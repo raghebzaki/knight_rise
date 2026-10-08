@@ -37,7 +37,12 @@ class _RoutinesView extends StatelessWidget {
         builder: (context, routines) {
           if (routines == null) return const Center(child: CircularProgressIndicator());
           return ListView(
-            padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              KnightSpacing.lg,
+              KnightSpacing.sm,
+              KnightSpacing.lg,
+              KnightSpacing.xxl,
+            ),
             children: [
               for (final r in routines)
                 Padding(
