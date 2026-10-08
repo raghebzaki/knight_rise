@@ -22,5 +22,12 @@ abstract class AppSettings with _$AppSettings {
 
     /// Send a single "Shield down" summary reminder when a Shield ends.
     @Default(true) bool shieldRecoverOnExit,
+
+    /// A work day counts toward the streak when every enabled routine reaches
+    /// this percentage of its daily target.
+    @Default(70) int streakThresholdPercent,
+
+    /// Last run of the 90-day retention job (it runs at most once a day).
+    DateTime? lastRetentionRunAt,
   }) = _AppSettings;
 }

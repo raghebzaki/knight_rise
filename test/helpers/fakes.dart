@@ -100,6 +100,20 @@ class FakeReminderEventRepository implements ReminderEventRepository {
     _cell.set([..._cell.value, event.copyWith(id: id)]);
     return id;
   }
+
+  @override
+  Future<void> delete(int id) async => _cell.set([
+    for (final e in _cell.value)
+      if (e.id != id) e,
+  ]);
+
+  @override
+  Future<int> deleteBefore(DateTime cutoff) async {
+    final kept = _cell.value.where((e) => !e.at.isBefore(cutoff)).toList();
+    final removed = _cell.value.length - kept.length;
+    _cell.set(kept);
+    return removed;
+  }
 }
 
 class FakeShieldRepository implements ShieldRepository {
@@ -130,6 +144,14 @@ class FakeShieldRepository implements ShieldRepository {
   @override
   Future<ShieldSession?> active(DateTime now) async =>
       (_cell.value.where((s) => s.isActiveAt(now)).toList()..sort((a, b) => a.startAt.compareTo(b.startAt))).lastOrNull;
+
+  @override
+  Future<int> deleteEndedBefore(DateTime cutoff) async {
+    final kept = _cell.value.where((s) => !s.endAt.isBefore(cutoff)).toList();
+    final removed = _cell.value.length - kept.length;
+    _cell.set(kept);
+    return removed;
+  }
 }
 
 class FakeDayOverrideRepository implements DayOverrideRepository {
@@ -160,6 +182,15 @@ class FakeDayOverrideRepository implements DayOverrideRepository {
     for (final o in _cell.value)
       if (dateKey(o.date) != dateKey(date)) o,
   ]);
+
+  @override
+  Future<int> deleteBefore(DateTime date) async {
+    final key = dateKey(date);
+    final kept = _cell.value.where((o) => dateKey(o.date).compareTo(key) >= 0).toList();
+    final removed = _cell.value.length - kept.length;
+    _cell.set(kept);
+    return removed;
+  }
 }
 
 class FakeSettingsRepository implements SettingsRepository {

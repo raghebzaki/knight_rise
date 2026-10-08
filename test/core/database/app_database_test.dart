@@ -70,6 +70,23 @@ void main() {
     expect((await settings.get()).themeVariant, ThemeVariant.amoled);
   });
 
+  test('fresh install seeds a 70% streak threshold and no retention run', () async {
+    final s = await DriftSettingsRepository(db).get();
+    expect(s.streakThresholdPercent, 70);
+    expect(s.lastRetentionRunAt, isNull);
+  });
+
+  test('streakThresholdPercent and lastRetentionRunAt round-trip and can be cleared', () async {
+    final settings = DriftSettingsRepository(db);
+    final at = DateTime.utc(2026, 10, 8, 3);
+    await settings.save((await settings.get()).copyWith(streakThresholdPercent: 85, lastRetentionRunAt: at));
+    final s = await settings.get();
+    expect(s.streakThresholdPercent, 85);
+    expect(s.lastRetentionRunAt!.isAtSameMomentAs(at), isTrue);
+    await settings.save(s.copyWith(lastRetentionRunAt: null));
+    expect((await settings.get()).lastRetentionRunAt, isNull);
+  });
+
   test('events are filtered by time and keep every field', () async {
     final repo = DriftReminderEventRepository(db);
     final day = DateTime(2026, 10, 5);
@@ -101,6 +118,41 @@ void main() {
     expect(today.map((e) => e.type), [RoutineType.stretch, RoutineType.hydration]);
     expect(today.first.snoozedUntil, day.add(const Duration(hours: 10, minutes: 10)));
     expect(today.last.waterMl, 250);
+  });
+
+  test('event delete removes one event by id, ignores unknown ids, and streams', () async {
+    final repo = DriftReminderEventRepository(db);
+    final day = DateTime(2026, 10, 5, 10);
+    final first = await repo.add(
+      ReminderEvent(type: RoutineType.hydration, outcome: ReminderOutcome.done, at: day, waterMl: 500),
+    );
+    await repo.add(ReminderEvent(type: RoutineType.hydration, outcome: ReminderOutcome.done, at: day, waterMl: 150));
+    final emissions = <List<int?>>[];
+    final sub = repo.watchSince(day).listen((l) => emissions.add(l.map((e) => e.waterMl).toList()));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await repo.delete(first);
+    await repo.delete(first);
+    await repo.delete(999);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await sub.cancel();
+    expect(emissions.first, [500, 150]);
+    expect(emissions.last, [150]);
+  });
+
+  test('event deleteBefore removes only events strictly before the cutoff', () async {
+    final repo = DriftReminderEventRepository(db);
+    final cutoff = DateTime.utc(2026, 7, 10);
+    for (final at in [
+      cutoff.subtract(const Duration(days: 3)),
+      cutoff.subtract(const Duration(milliseconds: 1)),
+      cutoff,
+      cutoff.add(const Duration(hours: 1)),
+    ]) {
+      await repo.add(ReminderEvent(type: RoutineType.stretch, outcome: ReminderOutcome.done, at: at));
+    }
+    expect(await repo.deleteBefore(cutoff), 2);
+    expect((await repo.getSince(DateTime.utc(2000))).map((e) => e.at.isBefore(cutoff)), [false, false]);
+    expect(await repo.deleteBefore(cutoff), 0);
   });
 
   test('work schedule save replaces all windows', () async {

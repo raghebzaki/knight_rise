@@ -14,4 +14,9 @@ abstract interface class ShieldRepository {
 
   /// The session covering [now], if any (the latest started when several do).
   Future<ShieldSession?> active(DateTime now);
+
+  /// Removes sessions whose planned end is before [cutoff] (90-day
+  /// retention); returns the count. `endAt >= effectiveEnd`, so every removed
+  /// session was over by [cutoff].
+  Future<int> deleteEndedBefore(DateTime cutoff);
 }

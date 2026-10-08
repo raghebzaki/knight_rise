@@ -646,9 +646,345 @@ i1.GeneratedColumn<int> _column_33(String aliasedName) =>
       type: i1.DriftSqlType.int,
       $customConstraints: 'NULL',
     );
+
+final class Schema4 extends i0.VersionedSchema {
+  Schema4({required super.database}) : super(version: 4);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    routines,
+    workWindows,
+    reminderEvents,
+    appSettings,
+    reconcileRuns,
+    shieldSessions,
+    dayOverrides,
+    dailySummaries,
+    dailyRoutineSummaries,
+    idxEventsAt,
+    idxEventsTypeAt,
+    idxReconcileRunsAt,
+    idxShieldSessionsEndAt,
+  ];
+  late final Shape0 routines = Shape0(
+    source: i0.VersionedTable(
+      entityName: 'routines',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(type)'],
+      columns: [_column_0, _column_1, _column_2, _column_3, _column_4],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 workWindows = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'work_windows',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [_column_5, _column_6, _column_7, _column_8],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape2 reminderEvents = Shape2(
+    source: i0.VersionedTable(
+      entityName: 'reminder_events',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_5,
+        _column_9,
+        _column_10,
+        _column_11,
+        _column_12,
+        _column_13,
+        _column_14,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape8 appSettings = Shape8(
+    source: i0.VersionedTable(
+      entityName: 'app_settings',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_18,
+        _column_19,
+        _column_25,
+        _column_26,
+        _column_34,
+        _column_35,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape4 reconcileRuns = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'reconcile_runs',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_5,
+        _column_11,
+        _column_20,
+        _column_21,
+        _column_22,
+        _column_23,
+        _column_24,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape6 shieldSessions = Shape6(
+    source: i0.VersionedTable(
+      entityName: 'shield_sessions',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [_column_5, _column_27, _column_28, _column_29, _column_30],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape7 dayOverrides = Shape7(
+    source: i0.VersionedTable(
+      entityName: 'day_overrides',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(date)'],
+      columns: [_column_31, _column_32, _column_33],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape9 dailySummaries = Shape9(
+    source: i0.VersionedTable(
+      entityName: 'daily_summaries',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(date)'],
+      columns: [
+        _column_31,
+        _column_36,
+        _column_37,
+        _column_38,
+        _column_39,
+        _column_40,
+        _column_41,
+        _column_42,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape10 dailyRoutineSummaries = Shape10(
+    source: i0.VersionedTable(
+      entityName: 'daily_routine_summaries',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(date, routine_type)'],
+      columns: [_column_43, _column_9, _column_44, _column_45, _column_46],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index idxEventsAt = i1.Index(
+    'idx_events_at',
+    'CREATE INDEX idx_events_at ON reminder_events (at)',
+  );
+  final i1.Index idxEventsTypeAt = i1.Index(
+    'idx_events_type_at',
+    'CREATE INDEX idx_events_type_at ON reminder_events (routine_type, at)',
+  );
+  final i1.Index idxReconcileRunsAt = i1.Index(
+    'idx_reconcile_runs_at',
+    'CREATE INDEX idx_reconcile_runs_at ON reconcile_runs (at)',
+  );
+  final i1.Index idxShieldSessionsEndAt = i1.Index(
+    'idx_shield_sessions_end_at',
+    'CREATE INDEX idx_shield_sessions_end_at ON shield_sessions (end_at)',
+  );
+}
+
+class Shape8 extends i0.VersionedTable {
+  Shape8({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get themeVariant =>
+      columnsByName['theme_variant']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get precisionTiming =>
+      columnsByName['precision_timing']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get waterPerTapMl =>
+      columnsByName['water_per_tap_ml']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get timezoneId =>
+      columnsByName['timezone_id']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get onboardingCompleted =>
+      columnsByName['onboarding_completed']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get shieldRecoverOnExit =>
+      columnsByName['shield_recover_on_exit']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get streakThresholdPercent =>
+      columnsByName['streak_threshold_percent']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get lastRetentionRunAt =>
+      columnsByName['last_retention_run_at']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<int> _column_34(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'streak_threshold_percent',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL DEFAULT 70',
+      defaultValue: const i1.CustomExpression('70'),
+    );
+i1.GeneratedColumn<int> _column_35(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'last_retention_run_at',
+      aliasedName,
+      true,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NULL',
+    );
+
+class Shape9 extends i0.VersionedTable {
+  Shape9({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<String> get date =>
+      columnsByName['date']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get isWorkDay =>
+      columnsByName['is_work_day']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get waterMl =>
+      columnsByName['water_ml']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get waterTargetMl =>
+      columnsByName['water_target_ml']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get focusMinutes =>
+      columnsByName['focus_minutes']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get thresholdPercent =>
+      columnsByName['threshold_percent']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get qualified =>
+      columnsByName['qualified']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get finalizedAt =>
+      columnsByName['finalized_at']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<int> _column_36(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'is_work_day',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL CHECK (is_work_day IN (0, 1))',
+    );
+i1.GeneratedColumn<int> _column_37(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'water_ml',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_38(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'water_target_ml',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_39(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'focus_minutes',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_40(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'threshold_percent',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_41(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'qualified',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL CHECK (qualified IN (0, 1))',
+    );
+i1.GeneratedColumn<int> _column_42(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'finalized_at',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+
+class Shape10 extends i0.VersionedTable {
+  Shape10({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<String> get date =>
+      columnsByName['date']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get routineType =>
+      columnsByName['routine_type']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get done =>
+      columnsByName['done']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get target =>
+      columnsByName['target']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get enabled =>
+      columnsByName['enabled']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<String> _column_43(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'date',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints:
+          'NOT NULL REFERENCES daily_summaries(date)ON DELETE CASCADE',
+    );
+i1.GeneratedColumn<int> _column_44(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'done',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_45(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'target',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_46(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'enabled',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL CHECK (enabled IN (0, 1))',
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
+  required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -662,6 +998,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from2To3(migrator, schema);
         return 3;
+      case 3:
+        final schema = Schema4(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from3To4(migrator, schema);
+        return 4;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -671,6 +1012,11 @@ i0.MigrationStepWithVersion migrationSteps({
 i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
+  required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
 }) => i0.VersionedSchema.stepByStepHelper(
-  step: migrationSteps(from1To2: from1To2, from2To3: from2To3),
+  step: migrationSteps(
+    from1To2: from1To2,
+    from2To3: from2To3,
+    from3To4: from3To4,
+  ),
 );

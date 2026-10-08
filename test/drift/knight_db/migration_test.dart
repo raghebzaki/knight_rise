@@ -8,6 +8,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -300,6 +301,193 @@ void main() {
           expect(await newDb.select(newDb.reconcileRuns).get(), isEmpty);
           expect(await newDb.select(newDb.shieldSessions).get(), isEmpty);
           expect(await newDb.select(newDb.dayOverrides).get(), isEmpty);
+        },
+      );
+    },
+  );
+
+  test('migration from v3 to v4 keeps data, defaults the streak threshold, adds summary tables', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insertAll(oldDb.routines, [
+            const v3.RoutinesData(
+              type: 'stretch',
+              intervalMinutes: 50,
+              dailyTarget: 7,
+              enabled: 1,
+              mode: 'fixedGrid',
+            ),
+          ])
+          ..insertAll(oldDb.workWindows, [
+            const v3.WorkWindowsData(
+              id: 1,
+              weekday: 2,
+              startMinute: 480,
+              endMinute: 960,
+            ),
+          ])
+          ..insertAll(oldDb.reminderEvents, [
+            const v3.ReminderEventsData(
+              id: 1,
+              routineType: 'hydration',
+              outcome: 'done',
+              at: 1759650000,
+              waterMl: 500,
+            ),
+          ])
+          ..insertAll(oldDb.appSettings, [
+            const v3.AppSettingsData(
+              id: 1,
+              themeVariant: 'amoled',
+              precisionTiming: 0,
+              waterPerTapMl: 250,
+              timezoneId: 'Asia/Dubai',
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 0,
+            ),
+          ])
+          ..insertAll(oldDb.shieldSessions, [
+            const v3.ShieldSessionsData(
+              id: 1,
+              startAt: 1759650000,
+              endAt: 1759653000,
+              endedAt: 1759651000,
+              reason: 'meeting',
+            ),
+          ])
+          ..insertAll(oldDb.dayOverrides, [
+            const v3.DayOverridesData(
+              date: '2026-10-05',
+              kind: 'extend',
+              extendMinutes: 60,
+            ),
+          ]);
+      },
+      validateItems: (newDb) async {
+        expect(await newDb.select(newDb.routines).get(), [
+          const v4.RoutinesData(
+            type: 'stretch',
+            intervalMinutes: 50,
+            dailyTarget: 7,
+            enabled: 1,
+            mode: 'fixedGrid',
+          ),
+        ]);
+        expect(await newDb.select(newDb.workWindows).get(), [
+          const v4.WorkWindowsData(
+            id: 1,
+            weekday: 2,
+            startMinute: 480,
+            endMinute: 960,
+          ),
+        ]);
+        expect(await newDb.select(newDb.reminderEvents).get(), [
+          const v4.ReminderEventsData(
+            id: 1,
+            routineType: 'hydration',
+            outcome: 'done',
+            at: 1759650000,
+            waterMl: 500,
+          ),
+        ]);
+        expect(await newDb.select(newDb.appSettings).get(), [
+          const v4.AppSettingsData(
+            id: 1,
+            themeVariant: 'amoled',
+            precisionTiming: 0,
+            waterPerTapMl: 250,
+            timezoneId: 'Asia/Dubai',
+            onboardingCompleted: 1,
+            shieldRecoverOnExit: 0,
+            streakThresholdPercent: 70,
+          ),
+        ]);
+        expect(await newDb.select(newDb.shieldSessions).get(), [
+          const v4.ShieldSessionsData(
+            id: 1,
+            startAt: 1759650000,
+            endAt: 1759653000,
+            endedAt: 1759651000,
+            reason: 'meeting',
+          ),
+        ]);
+        expect(await newDb.select(newDb.dayOverrides).get(), [
+          const v4.DayOverridesData(
+            date: '2026-10-05',
+            kind: 'extend',
+            extendMinutes: 60,
+          ),
+        ]);
+        expect(await newDb.select(newDb.dailySummaries).get(), isEmpty);
+        expect(await newDb.select(newDb.dailyRoutineSummaries).get(), isEmpty);
+      },
+    );
+  });
+
+  test(
+    'migration from v1 to v4 keeps data and ends on the v4 schema',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 1,
+        newVersion: 4,
+        createOld: v1.DatabaseAtV1.new,
+        createNew: v4.DatabaseAtV4.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch
+            ..insertAll(oldDb.routines, [
+              const v1.RoutinesData(
+                type: 'eyeRest',
+                intervalMinutes: 20,
+                dailyTarget: 12,
+                enabled: 1,
+                mode: 'rolling',
+              ),
+            ])
+            ..insertAll(oldDb.appSettings, [
+              const v1.AppSettingsData(
+                id: 1,
+                themeVariant: 'midnight',
+                precisionTiming: 1,
+                waterPerTapMl: 300,
+              ),
+            ]);
+        },
+        validateItems: (newDb) async {
+          expect(await newDb.select(newDb.routines).get(), [
+            const v4.RoutinesData(
+              type: 'eyeRest',
+              intervalMinutes: 20,
+              dailyTarget: 12,
+              enabled: 1,
+              mode: 'rolling',
+            ),
+          ]);
+          expect(await newDb.select(newDb.appSettings).get(), [
+            const v4.AppSettingsData(
+              id: 1,
+              themeVariant: 'midnight',
+              precisionTiming: 1,
+              waterPerTapMl: 300,
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 1,
+              streakThresholdPercent: 70,
+            ),
+          ]);
+          expect(await newDb.select(newDb.reconcileRuns).get(), isEmpty);
+          expect(await newDb.select(newDb.shieldSessions).get(), isEmpty);
+          expect(await newDb.select(newDb.dayOverrides).get(), isEmpty);
+          expect(await newDb.select(newDb.dailySummaries).get(), isEmpty);
+          expect(
+            await newDb.select(newDb.dailyRoutineSummaries).get(),
+            isEmpty,
+          );
         },
       );
     },

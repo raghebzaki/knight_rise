@@ -63,4 +63,13 @@ void main() {
     expect(emissions.last, [6]);
     expect((await repo.getFrom(d(1))).map((o) => o.date.day), [6]);
   });
+
+  test('deleteBefore removes overrides dated strictly before the date', () async {
+    for (final day in [1, 4, 5, 9]) {
+      await repo.set(DayOverride(date: d(day), kind: DayOverrideKind.off));
+    }
+    expect(await repo.deleteBefore(DateTime(2026, 10, 5, 18)), 2);
+    expect((await repo.getFrom(d(1))).map((o) => o.date.day), [5, 9]);
+    expect(await repo.deleteBefore(d(5)), 0);
+  });
 }

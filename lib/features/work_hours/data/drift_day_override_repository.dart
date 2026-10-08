@@ -32,6 +32,10 @@ class DriftDayOverrideRepository implements DayOverrideRepository {
   Future<void> clear(DateTime date) =>
       (_db.delete(_db.dayOverrides)..where((o) => o.date.equals(dateKey(date)))).go().then((_) {});
 
+  @override
+  Future<int> deleteBefore(DateTime date) =>
+      (_db.delete(_db.dayOverrides)..where((o) => o.date.isSmallerThanValue(dateKey(date)))).go();
+
   static DayOverride _toDomain(DayOverrideRow r) => DayOverride(
     date: parseDateKey(r.date),
     kind: DayOverrideKind.values.asNameMap()[r.kind] ?? DayOverrideKind.off,

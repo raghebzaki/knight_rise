@@ -90,4 +90,14 @@ void main() {
     await repo.add(session(11, 12));
     expect((await repo.active(t(11, 30)))!.id, 2);
   });
+
+  test('deleteEndedBefore removes sessions planned to end before the cutoff', () async {
+    await repo.add(session(8, 9, day: 3));
+    await repo.add(session(7, 9));
+    await repo.add(session(8, 11, endedAt: t(8, 30))); // ended early, but planned end is after the cutoff: kept
+    await repo.add(session(9, 10)); // planned end exactly at the cutoff: kept
+    expect(await repo.deleteEndedBefore(t(10)), 2);
+    expect((await repo.getSince(t(0, 0, 1))).map((s) => s.id), [3, 4]);
+    expect(await repo.deleteEndedBefore(t(10)), 0);
+  });
 }

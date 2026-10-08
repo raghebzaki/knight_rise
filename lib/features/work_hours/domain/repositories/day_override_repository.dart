@@ -11,4 +11,7 @@ abstract interface class DayOverrideRepository {
 
   /// Removes the override of [date], if any.
   Future<void> clear(DateTime date);
+
+  /// Removes overrides dated before [date] (90-day retention); returns the count.
+  Future<int> deleteBefore(DateTime date);
 }

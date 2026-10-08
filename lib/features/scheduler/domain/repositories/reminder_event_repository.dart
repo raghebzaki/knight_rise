@@ -8,4 +8,10 @@ abstract interface class ReminderEventRepository {
   Future<List<ReminderEvent>> getSince(DateTime since);
 
   Future<int> add(ReminderEvent event);
+
+  /// Removes one event (in-app water undo). No-op when [id] is unknown.
+  Future<void> delete(int id);
+
+  /// Removes events with `at < cutoff` (90-day retention); returns the count.
+  Future<int> deleteBefore(DateTime cutoff);
 }

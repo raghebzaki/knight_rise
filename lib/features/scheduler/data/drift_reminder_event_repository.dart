@@ -33,6 +33,13 @@ class DriftReminderEventRepository implements ReminderEventRepository {
         ),
       );
 
+  @override
+  Future<void> delete(int id) => (_db.delete(_db.reminderEvents)..where((e) => e.id.equals(id))).go().then((_) {});
+
+  @override
+  Future<int> deleteBefore(DateTime cutoff) =>
+      (_db.delete(_db.reminderEvents)..where((e) => e.at.isSmallerThanValue(cutoff))).go();
+
   static ReminderEvent _toDomain(ReminderEventRow r) => ReminderEvent(
     id: r.id,
     type: r.routineType,

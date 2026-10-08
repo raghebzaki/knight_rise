@@ -373,6 +373,17 @@ Each diamond is a gate: the next milestone starts only once its criterion passes
 
 **Exit:** a week of internal dogfooding with no missed-schedule bugs; store builds approved.
 
+### Milestone 4 implementation notes
+
+- Daily summaries (replaces "updated on every completion" in section 5): today is computed live from the reminder-event stream and never stored. Past days are written once by an idempotent `FinalizeDays` job (launch, resume, hourly background task) that catches up every unfinalized day up to 90 days back. Schema v4 adds `daily_summaries` (keyed by local `YYYY-MM-DD`, with the streak threshold in force that day) and `daily_routine_summaries` (per-routine done / target / enabled snapshot, cascading from the day), plus `app_settings.streak_threshold_percent` (default 70) and `last_retention_run_at`. Summaries are permanent.
+- No "missed" derivation (supersedes the M2 note): history and streaks measure completion against target.
+- Hydration progress is water logged (ml) ÷ target ml; stretch and eye rest stay counts.
+- Streak: a work day qualifies when every enabled routine reaches the threshold. Rest days (no work window or a "day off" override) are neutral. Rank follows the current streak — Page 0–2, Squire 3, Knight 7, Paladin 30 — and the best streak is shown alongside.
+- Retention: events, Shield sessions (by planned end) and day overrides older than 90 days are deleted at most once a day, always after `FinalizeDays`.
+- Water undo: a 5 s SnackBar deletes the in-app event by id. Reconcile and background handlers still only append.
+- Charts: fl_chart, which pins equatable 2.x, so the app's constraint is `equatable: ^2.0.7` (only the core `Equatable` API is used).
+- Deferred to v1.1: end-of-day summary notification. Privacy policy is hosted on GitHub Pages from this repository.
+
 ## 7. Risks, testing & open questions
 
 ### Risks

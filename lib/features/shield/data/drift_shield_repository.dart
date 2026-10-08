@@ -62,6 +62,10 @@ class DriftShieldRepository implements ShieldRepository {
     return rows.map(_toDomain).where((s) => s.isActiveAt(now)).firstOrNull;
   }
 
+  @override
+  Future<int> deleteEndedBefore(DateTime cutoff) =>
+      (_db.delete(_db.shieldSessions)..where((s) => s.endAt.isSmallerThanValue(cutoff))).go();
+
   static ShieldSession _toDomain(ShieldSessionRow r) => ShieldSession(
     id: r.id,
     startAt: r.startAt,

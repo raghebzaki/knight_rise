@@ -31,6 +31,8 @@ class DriftSettingsRepository implements SettingsRepository {
           timezoneId: Value(s.timezoneId),
           onboardingCompleted: Value(s.onboardingCompleted),
           shieldRecoverOnExit: Value(s.shieldRecoverOnExit),
+          streakThresholdPercent: Value(s.streakThresholdPercent),
+          lastRetentionRunAt: Value(s.lastRetentionRunAt),
         ),
       );
 
@@ -43,5 +45,7 @@ class DriftSettingsRepository implements SettingsRepository {
           timezoneId: r.timezoneId,
           onboardingCompleted: r.onboardingCompleted,
           shieldRecoverOnExit: r.shieldRecoverOnExit,
+          streakThresholdPercent: r.streakThresholdPercent,
+          lastRetentionRunAt: r.lastRetentionRunAt,
         );
 }

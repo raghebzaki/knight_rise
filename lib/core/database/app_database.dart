@@ -63,6 +63,13 @@ class AppSettingsTable extends Table {
   /// Send a single "Shield down" summary reminder when a Shield ends.
   BoolColumn get shieldRecoverOnExit => boolean().withDefault(const Constant(true))();
 
+  /// A work day counts toward the streak when every enabled routine reaches
+  /// this percentage of its daily target.
+  IntColumn get streakThresholdPercent => integer().withDefault(const Constant(70))();
+
+  /// Last time the 90-day retention job ran; it runs at most once a day.
+  DateTimeColumn get lastRetentionRunAt => dateTime().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -110,8 +117,53 @@ class ReconcileRuns extends Table {
   TextColumn get error => text().nullable()();
 }
 
+/// One finalized past day (Milestone 4). Today is never stored: it is
+/// computed live from reminder events. Kept permanently; powers streaks and
+/// history charts after raw events are pruned.
+@DataClassName('DailySummaryRow')
+class DailySummaries extends Table {
+  /// Local date, `YYYY-MM-DD`.
+  TextColumn get date => text()();
+  BoolColumn get isWorkDay => boolean()();
+  IntColumn get waterMl => integer()();
+  IntColumn get waterTargetMl => integer()();
+  IntColumn get focusMinutes => integer()();
+
+  /// Streak threshold in force when the day was finalized.
+  IntColumn get thresholdPercent => integer()();
+  BoolColumn get qualified => boolean()();
+  DateTimeColumn get finalizedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date};
+}
+
+/// Per-routine counts of a [DailySummaries] day, with the target and enabled
+/// flag as they were that day.
+@DataClassName('DailyRoutineSummaryRow')
+class DailyRoutineSummaries extends Table {
+  TextColumn get date => text().references(DailySummaries, #date, onDelete: KeyAction.cascade)();
+  TextColumn get routineType => textEnum<RoutineType>()();
+  IntColumn get done => integer()();
+  IntColumn get target => integer()();
+  BoolColumn get enabled => boolean()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date, routineType};
+}
+
 @DriftDatabase(
-  tables: [Routines, WorkWindows, ReminderEvents, AppSettingsTable, ReconcileRuns, ShieldSessions, DayOverrides],
+  tables: [
+    Routines,
+    WorkWindows,
+    ReminderEvents,
+    AppSettingsTable,
+    ReconcileRuns,
+    ShieldSessions,
+    DayOverrides,
+    DailySummaries,
+    DailyRoutineSummaries,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -123,7 +175,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -145,6 +197,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.shieldSessions);
         await m.createIndex(schema.idxShieldSessionsEndAt);
         await m.createTable(schema.dayOverrides);
+      },
+      from3To4: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.streakThresholdPercent);
+        await m.addColumn(schema.appSettings, schema.appSettings.lastRetentionRunAt);
+        await m.createTable(schema.dailySummaries);
+        await m.createTable(schema.dailyRoutineSummaries);
       },
     ),
     beforeOpen: (details) async {
