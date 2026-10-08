@@ -40,7 +40,7 @@ void main() {
   });
 
   test('consecutive qualified days up to yesterday', () {
-    expect(run(days('QQQ'), today: 4), const StreakStatus(current: 3, best: 3));
+    expect(run(days('QQQ'), today: 4), StreakStatus(current: 3, best: 3, rankReachedOn: d(3)));
   });
 
   test('an unqualified work day breaks the run', () {
@@ -50,7 +50,7 @@ void main() {
 
   test('rest days are neutral: they neither extend nor break', () {
     // Thu Q, Fri rest, Sat rest, Sun Q, Mon Q.
-    expect(run(days('QrrQQ'), today: 6), const StreakStatus(current: 3, best: 3));
+    expect(run(days('QrrQQ'), today: 6), StreakStatus(current: 3, best: 3, rankReachedOn: d(5)));
     expect(run(days('Qrr'), today: 4), const StreakStatus(current: 1, best: 1));
     expect(run(days('rrr'), today: 4), StreakStatus.none);
   });
@@ -69,7 +69,10 @@ void main() {
   });
 
   test('best includes today when the current run is the longest', () {
-    expect(run(days('QQ'), today: 3, todaySummary: day(3, 'Q')), const StreakStatus(current: 3, best: 3));
+    expect(
+      run(days('QQ'), today: 3, todaySummary: day(3, 'Q')),
+      StreakStatus(current: 3, best: 3, rankReachedOn: d(3)),
+    );
   });
 
   test('a missing date inside the history breaks the run (no data for it)', () {
@@ -80,7 +83,7 @@ void main() {
   test('dates after the latest summary are pending (not finalized yet) and skipped', () {
     // Summaries up to the 3rd, today is the 6th: the 4th and 5th are not
     // finalized yet (e.g. right after midnight) and must not zero the streak.
-    expect(run(days('QQQ'), today: 6), const StreakStatus(current: 3, best: 3));
+    expect(run(days('QQQ'), today: 6), StreakStatus(current: 3, best: 3, rankReachedOn: d(3)));
   });
 
   test('summaries dated today or later are ignored (today comes from todaySummary)', () {
@@ -95,7 +98,7 @@ void main() {
   test('rank follows the current streak, not the best', () {
     final h = [...days('Q' * 10), day(11, 'x'), ...days('QQQ', start: 12)];
     final s = run(h, today: 15);
-    expect(s, const StreakStatus(current: 3, best: 10));
+    expect(s, StreakStatus(current: 3, best: 10, rankReachedOn: d(14)));
     expect(s.rank, KnightRank.squire);
   });
 
@@ -105,5 +108,39 @@ void main() {
     final s = run(days(pattern, start: 4), today: 4 + pattern.length);
     expect(s.current, 30);
     expect(s.rank, KnightRank.paladin);
+  });
+
+  group('rankReachedOn', () {
+    test('is the minDays-th qualifying day of the current run, rest days skipped', () {
+      // Q Q r r Q Q Q Q Q: qualifying 1,2,5,6,7,8,9 → Knight (7) reached on the 9th.
+      final s = run(days('QQrrQQQQQ'), today: 10);
+      expect(s.rank, KnightRank.knight);
+      expect(s.rankReachedOn, d(9));
+    });
+
+    test('today counts once it qualifies', () {
+      final s = run(days('QQ'), today: 3, todaySummary: day(3, 'Q'));
+      expect(s.rankReachedOn, d(3));
+    });
+
+    test('Page has none', () {
+      expect(run(days('QQ'), today: 3).rankReachedOn, isNull);
+      expect(StreakStatus.none.rankReachedOn, isNull);
+    });
+  });
+
+  group('pendingRankUp', () {
+    final squireOn5 = StreakStatus(current: 4, best: 4, rankReachedOn: d(5));
+
+    test('pending until celebrated on or after the day it was reached', () {
+      expect(pendingRankUp(squireOn5), KnightRank.squire);
+      expect(pendingRankUp(squireOn5, celebratedOn: d(4)), KnightRank.squire);
+      expect(pendingRankUp(squireOn5, celebratedOn: d(5)), isNull);
+      expect(pendingRankUp(squireOn5, celebratedOn: DateTime(2026, 10, 6, 9)), isNull);
+    });
+
+    test('nothing for Page', () {
+      expect(pendingRankUp(StreakStatus.none), isNull);
+    });
   });
 }

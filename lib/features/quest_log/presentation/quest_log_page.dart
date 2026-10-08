@@ -7,14 +7,15 @@ import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
+import 'package:knight_rise/core/theme/text_scale.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
 import 'package:knight_rise/core/widgets/knight_error_view.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/break_page.dart' show kWaterChoicesMl;
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
 import 'package:knight_rise/features/quest_log/domain/entities/daily_summary.dart';
-import 'package:knight_rise/features/quest_log/domain/entities/knight_rank.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_cubit.dart';
+import 'package:knight_rise/features/quest_log/presentation/widgets/rank_up_dialog.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
@@ -43,22 +44,6 @@ class _QuestLogPageState extends State<QuestLogPage> {
     _lifecycle = AppLifecycleListener(onResume: _cubit.refresh);
   }
 
-  bool _celebrating = false;
-
-  /// Shows the rank-up once, then records it so it is not shown again today.
-  Future<void> _celebrate(QuestLogView view) async {
-    final rank = view.rankUp;
-    if (rank == null || _celebrating) return;
-    _celebrating = true;
-    unawaited(_cubit.markRankUpSeen());
-    context.haptic(HapticKind.celebrate);
-    await showDialog<void>(
-      context: context,
-      builder: (_) => _RankUpDialog(rank: rank, days: view.streak.current),
-    );
-    _celebrating = false;
-  }
-
   @override
   void dispose() {
     _lifecycle.dispose();
@@ -73,9 +58,7 @@ class _QuestLogPageState extends State<QuestLogPage> {
       value: _cubit,
       child: Scaffold(
         appBar: AppBar(title: Text(l.questLogTitle.toUpperCase(), style: Theme.of(context).textTheme.headlineSmall)),
-        body: BlocConsumer<QuestLogCubit, QuestLogState>(
-          listenWhen: (previous, current) => current.view?.rankUp != null && previous.view?.rankUp == null,
-          listener: (context, state) => unawaited(_celebrate(state.view!)),
+        body: BlocBuilder<QuestLogCubit, QuestLogState>(
           builder: (context, state) => switch (state) {
             QuestLogState(status: QuestLogStatus.ready, :final view?) => _QuestLogBody(view: view),
             QuestLogState(status: QuestLogStatus.failure, :final error) => KnightErrorView(
@@ -103,7 +86,12 @@ class _QuestLogBody extends StatelessWidget {
     final cleanSlate =
         view.history.isEmpty && view.streak.best == 0 && today.routines.every((r) => r.done == 0) && today.waterMl == 0;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        KnightSpacing.lg,
+        KnightSpacing.sm,
+        KnightSpacing.lg,
+        KnightSpacing.xxl,
+      ),
       children: [
         if (cleanSlate) ...[const _CleanSlate(), const SizedBox(height: KnightSpacing.lg)],
         _Hero(view: view),
@@ -128,13 +116,6 @@ String _measureText(AppLocalizations l, DailySummary day, RoutineDaySummary r) {
   final m = day.measureOf(r);
   return r.type == RoutineType.hydration ? l.waterProgress(m.value, m.goal) : l.progressOf(m.value, m.goal);
 }
-
-String _rankName(AppLocalizations l, KnightRank rank) => switch (rank) {
-  KnightRank.page => l.rankPage,
-  KnightRank.squire => l.rankSquire,
-  KnightRank.knight => l.rankKnight,
-  KnightRank.paladin => l.rankPaladin,
-};
 
 /// "45 min", "1 h 5 min".
 String formatFocusMinutes(AppLocalizations l, int minutes) =>
@@ -206,7 +187,7 @@ class _RankBadge extends StatelessWidget {
             children: [
               Icon(Icons.military_tech_outlined, color: scheme.primary),
               const SizedBox(width: KnightSpacing.sm),
-              Text(_rankName(l, rank).toUpperCase(), key: const Key('quest-rank'), style: text.titleLarge),
+              Text(rankName(l, rank).toUpperCase(), key: const Key('quest-rank'), style: text.titleLarge),
             ],
           ),
           const SizedBox(height: KnightSpacing.xs),
@@ -214,7 +195,7 @@ class _RankBadge extends StatelessWidget {
           Text(
             [
               l.streakBest(streak.best),
-              if (next != null) l.rankNext(rank.daysToNext(streak.current)!, _rankName(l, next)) else l.rankTop,
+              if (next != null) l.rankNext(rank.daysToNext(streak.current)!, rankName(l, next)) else l.rankTop,
             ].join(' · '),
             style: text.bodySmall?.copyWith(color: tokens.textMuted),
             textAlign: TextAlign.center,
@@ -260,53 +241,6 @@ class _CleanSlate extends StatelessWidget {
   }
 }
 
-/// The rank-up moment: the new rank's badge scales in (instantly with
-/// reduced motion), with the streak that earned it.
-class _RankUpDialog extends StatelessWidget {
-  const _RankUpDialog({required this.rank, required this.days});
-
-  final KnightRank rank;
-  final int days;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    final name = _rankName(l, rank);
-    return Dialog(
-      key: const Key('rank-up-dialog'),
-      child: Padding(
-        padding: const EdgeInsets.all(KnightSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: reduced ? 1 : 0.4, end: 1),
-              duration: reduced ? Duration.zero : const Duration(milliseconds: 700),
-              curve: Curves.elasticOut,
-              builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-              child: DecoratedBox(
-                decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: context.knight.activeGlow),
-                child: Icon(Icons.military_tech, size: 72, color: scheme.primary),
-              ),
-            ),
-            const SizedBox(height: KnightSpacing.md),
-            Text(l.rankUpTitle.toUpperCase(), style: text.headlineSmall),
-            const SizedBox(height: KnightSpacing.xs),
-            Text(name.toUpperCase(), style: text.titleLarge?.copyWith(color: scheme.primary)),
-            const SizedBox(height: KnightSpacing.sm),
-            Text(l.rankUpBody(name, days), style: text.bodyMedium, textAlign: TextAlign.center),
-            const SizedBox(height: KnightSpacing.lg),
-            FilledButton(onPressed: () => Navigator.of(context).pop(), child: Text(l.rankUpDismiss)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _RoutineProgressCard extends StatelessWidget {
   const _RoutineProgressCard({required this.today, required this.routine, required this.lastDoneAt});
 
@@ -327,6 +261,8 @@ class _RoutineProgressCard extends StatelessWidget {
         ? l.questNotYet
         : l.questLastAt(DateFormat.Hm(Localizations.localeOf(context).toLanguageTag()).format(last));
 
+    final measure = _measureText(l, today, routine);
+    final large = context.isLargeText;
     return KnightCard(
       key: Key('quest-routine-${routine.type.name}'),
       child: Row(
@@ -344,10 +280,12 @@ class _RoutineProgressCard extends StatelessWidget {
               children: [
                 Text(routine.type.label(l), style: text.titleLarge),
                 Text(status, style: text.bodySmall?.copyWith(color: tokens.textMuted)),
+                // Large text: the value sits under the title instead of beside it.
+                if (large) Text(measure, style: text.labelMedium),
               ],
             ),
           ),
-          Text(_measureText(l, today, routine), style: text.labelMedium),
+          if (!large) Text(measure, style: text.labelMedium),
         ],
       ),
     );
@@ -407,11 +345,18 @@ class _WaterLogger extends StatelessWidget {
             runSpacing: KnightSpacing.sm,
             children: [
               for (final ml in kWaterChoicesMl)
-                ActionChip(
-                  key: Key('water-$ml'),
-                  avatar: const Icon(Icons.add, size: 18),
-                  label: Text(l.mlAmount(ml)),
-                  onPressed: () => unawaited(_log(context, ml)),
+                // Spoken as "Log 250 ml of water", not just "250 ml".
+                Semantics(
+                  label: l.waterLogAction(ml),
+                  excludeSemantics: true,
+                  button: true,
+                  onTap: () => unawaited(_log(context, ml)),
+                  child: ActionChip(
+                    key: Key('water-$ml'),
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: Text(l.mlAmount(ml)),
+                    onPressed: () => unawaited(_log(context, ml)),
+                  ),
                 ),
             ],
           ),

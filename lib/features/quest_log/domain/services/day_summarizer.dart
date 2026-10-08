@@ -3,6 +3,7 @@ import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/features/quest_log/domain/entities/daily_summary.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
+import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/domain/entities/app_settings.dart';
 import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
@@ -20,6 +21,16 @@ class SummaryInputs {
     this.shields = const [],
     this.overrides = const [],
   });
+
+  /// The same persisted state the dashboard watches.
+  factory SummaryInputs.of(CycleInputs inputs) => SummaryInputs(
+    routines: inputs.routines,
+    schedule: inputs.schedule,
+    settings: inputs.settings,
+    events: inputs.todayEvents,
+    shields: inputs.shields,
+    overrides: inputs.overrides,
+  );
 
   final List<Routine> routines;
   final WorkSchedule schedule;

@@ -6,7 +6,7 @@ import 'package:meta/meta.dart';
 
 @immutable
 class StreakStatus {
-  const StreakStatus({required this.current, required this.best});
+  const StreakStatus({required this.current, required this.best, this.rankReachedOn});
 
   static const none = StreakStatus(current: 0, best: 0);
 
@@ -16,16 +16,21 @@ class StreakStatus {
   /// Longest run ever, including the current one.
   final int best;
 
+  /// The day the current run reached [rank] (its `rank.minDays`-th
+  /// qualifying day), or null for [KnightRank.page].
+  final DateTime? rankReachedOn;
+
   KnightRank get rank => KnightRank.forStreak(current);
 
   @override
-  bool operator ==(Object other) => other is StreakStatus && other.current == current && other.best == best;
+  bool operator ==(Object other) =>
+      other is StreakStatus && other.current == current && other.best == best && other.rankReachedOn == rankReachedOn;
 
   @override
-  int get hashCode => Object.hash(current, best);
+  int get hashCode => Object.hash(current, best, rankReachedOn);
 
   @override
-  String toString() => 'StreakStatus(current: $current, best: $best)';
+  String toString() => 'StreakStatus(current: $current, best: $best, rankReachedOn: $rankReachedOn)';
 }
 
 /// Pure: finalized summaries (+ today's live summary) → streaks.
@@ -50,7 +55,9 @@ class StreakCalculator {
         if (dateOnly(s.date).isBefore(day0)) dateKey(s.date): s,
     };
     final todayBonus = todaySummary != null && todaySummary.countsTowardStreak && todaySummary.qualified ? 1 : 0;
-    if (byDate.isEmpty) return StreakStatus(current: todayBonus, best: todayBonus);
+    if (byDate.isEmpty) {
+      return _status(current: todayBonus, best: todayBonus, runDates: [if (todayBonus == 1) day0]);
+    }
 
     final dates = byDate.keys.toList()..sort();
     final first = parseDateKey(dates.first);
@@ -69,8 +76,8 @@ class StreakCalculator {
       }
     }
 
-    // Current run: walk back from yesterday.
-    var current = 0;
+    // Current run: walk back from yesterday, newest first.
+    final runDates = <DateTime>[];
     for (var d = addDays(day0, -1); !d.isBefore(first); d = addDays(d, -1)) {
       final s = byDate[dateKey(d)];
       if (s == null) {
@@ -79,9 +86,32 @@ class StreakCalculator {
       }
       if (!s.countsTowardStreak) continue;
       if (!s.qualified) break;
-      current++;
+      runDates.add(d);
     }
-    current += todayBonus;
-    return StreakStatus(current: current, best: current > best ? current : best);
+    final currentRun = [...runDates.reversed, if (todayBonus == 1) day0];
+    final current = currentRun.length;
+    return _status(current: current, best: current > best ? current : best, runDates: currentRun);
   }
+
+  /// [runDates] are the current run's qualifying days, oldest first.
+  static StreakStatus _status({required int current, required int best, required List<DateTime> runDates}) {
+    final rank = KnightRank.forStreak(current);
+    return StreakStatus(
+      current: current,
+      best: best,
+      rankReachedOn: rank == KnightRank.page ? null : runDates[rank.minDays - 1],
+    );
+  }
+}
+
+/// The rank to celebrate, or null: the current rank once its
+/// [StreakStatus.rankReachedOn] day is after the last celebration
+/// ([celebratedOn], date-only). A rank lost and earned again is celebrated
+/// again; a rank reached yesterday (e.g. through notifications) is still
+/// pending on the next open.
+KnightRank? pendingRankUp(StreakStatus streak, {DateTime? celebratedOn}) {
+  final reached = streak.rankReachedOn;
+  if (reached == null) return null;
+  if (celebratedOn != null && !dateOnly(celebratedOn).isBefore(reached)) return null;
+  return streak.rank;
 }

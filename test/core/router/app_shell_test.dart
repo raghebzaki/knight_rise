@@ -11,10 +11,13 @@ import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/home_page.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
+import 'package:knight_rise/features/quest_log/domain/services/day_summarizer.dart';
+import 'package:knight_rise/features/quest_log/domain/services/streak_calculator.dart';
 import 'package:knight_rise/features/quest_log/presentation/history_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/history_page.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart';
+import 'package:knight_rise/features/quest_log/presentation/rank_up_cubit.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
@@ -56,6 +59,17 @@ void main() {
           SetDayOff(quest.overrides),
           ExtendWorkDay(quest.overrides),
           ClearDayOverride(quest.overrides),
+          clock,
+          location,
+        ),
+      )
+      ..registerFactory<RankUpCubit>(
+        () => RankUpCubit(
+          WatchCycleInputs(quest.routines, work, quest.events, settings, quest.shields, quest.overrides),
+          quest.summaries,
+          const DaySummarizer(),
+          const StreakCalculator(),
+          settings,
           clock,
           location,
         ),
@@ -200,6 +214,34 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(path(router), '/history');
     expect(find.byType(HistoryPage), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('a pending rank-up is celebrated on Today, once', (tester) async {
+    // Mon 5 Oct: Sun 4 .. Thu 1 qualified around a weekend → Squire, never shown.
+    for (final n in [1, 4]) {
+      await quest.summaries.upsert(pastDay(DateTime.utc(2026, 10, n)));
+    }
+    await quest.summaries.upsert(pastDay(DateTime.utc(2026, 9, 30)));
+    for (final n in [2, 3]) {
+      await quest.summaries.upsert(pastDay(DateTime.utc(2026, 10, n), workDay: false));
+    }
+    await pumpAt(tester, '/');
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.text('RANK UP!'), findsOneWidget);
+    expect(find.text('You rose to Squire with a 3-day streak.'), findsOneWidget);
+    expect(settings.current.rankCelebratedOn, DateTime.utc(2026, 10, 5));
+
+    await tester.tap(find.text('Onward'));
+    await tester.pumpAndSettle();
+    expect(find.text('RANK UP!'), findsNothing);
+
+    // Switching tabs does not show it again.
+    await tester.tap(tab('Quest Log'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('RANK UP!'), findsNothing);
     await unmount(tester);
   });
 }

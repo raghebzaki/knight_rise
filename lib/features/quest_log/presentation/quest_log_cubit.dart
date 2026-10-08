@@ -9,14 +9,12 @@ import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/core/time/location_provider.dart';
 import 'package:knight_rise/core/utils/combine_latest.dart';
 import 'package:knight_rise/features/quest_log/domain/entities/daily_summary.dart';
-import 'package:knight_rise/features/quest_log/domain/entities/knight_rank.dart';
 import 'package:knight_rise/features/quest_log/domain/repositories/daily_summary_repository.dart';
 import 'package:knight_rise/features/quest_log/domain/services/day_summarizer.dart';
 import 'package:knight_rise/features/quest_log/domain/services/streak_calculator.dart';
 import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
-import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 part 'quest_log_cubit.freezed.dart';
@@ -40,10 +38,6 @@ abstract class QuestLogView with _$QuestLogView {
 
     /// Shield minutes over the last 7 days, today included.
     @Default(0) int focusMinutesWeek,
-
-    /// The rank today's qualification just reached, until it has been
-    /// celebrated (once per day, see [QuestLogCubit.markRankUpSeen]).
-    KnightRank? rankUp,
   }) = _QuestLogView;
 }
 
@@ -75,7 +69,6 @@ class QuestLogCubit extends Cubit<QuestLogState> {
     this._complete,
     this._undo,
     this._maintain,
-    this._settings,
     this._clock,
     this._location,
   ) : super(const QuestLogState());
@@ -87,7 +80,6 @@ class QuestLogCubit extends Cubit<QuestLogState> {
   final CompleteRoutine _complete;
   final UndoCompletion _undo;
   final MaintainHistory _maintain;
-  final SettingsRepository _settings;
   final Clock _clock;
   final LocationProvider _location;
 
@@ -115,9 +107,6 @@ class QuestLogCubit extends Cubit<QuestLogState> {
   Future<int> logWater(int ml) => _complete(RoutineType.hydration, waterMl: ml);
 
   Future<void> undoWater(int eventId) => _undo(eventId);
-
-  /// Records that today's rank-up was shown, so it is not shown again today.
-  Future<void> markRankUpSeen() => _settings.markRankCelebrated(localDateOf(_clock.now(), _location.current));
 
   void _subscribe() {
     unawaited(_sub?.cancel());
@@ -156,29 +145,10 @@ class QuestLogCubit extends Cubit<QuestLogState> {
     final now = _clock.now();
     final location = _location.current;
     final day = localDateOf(now, location);
-    final today = _summarizer(
-      SummaryInputs(
-        routines: inputs.routines,
-        schedule: inputs.schedule,
-        settings: inputs.settings,
-        events: inputs.todayEvents,
-        shields: inputs.shields,
-        overrides: inputs.overrides,
-      ),
-      date: day,
-      location: location,
-      at: now,
-    );
+    final today = _summarizer(SummaryInputs.of(inputs), date: day, location: location, at: now);
+    final streak = _streaks(summaries, today: day, todaySummary: today);
     final historyStart = addDays(day, -kQuestLogHistoryDays);
     final weekStart = addDays(day, -6);
-    final streak = _streaks(summaries, today: day, todaySummary: today);
-    // Today's qualification is what lifted the rank when the streak without
-    // today held a lower one.
-    final reachedToday =
-        today.countsTowardStreak &&
-        today.qualified &&
-        streak.rank.index > KnightRank.forStreak(streak.current - 1).index;
-    final celebrated = inputs.settings.rankCelebratedOn;
     final history = [
       for (final s in summaries)
         if (!s.date.isBefore(historyStart) && s.date.isBefore(day)) s,
@@ -189,7 +159,6 @@ class QuestLogCubit extends Cubit<QuestLogState> {
         view: QuestLogView(
           today: today,
           streak: streak,
-          rankUp: reachedToday && (celebrated == null || dateOnly(celebrated) != day) ? streak.rank : null,
           history: history,
           lastDoneAt: {
             for (final MapEntry(:key, :value) in historyFromEvents(inputs.todayEvents).entries)
