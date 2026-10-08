@@ -2,6 +2,7 @@ import 'package:injectable/injectable.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/core/utils/combine_latest.dart';
+import 'package:knight_rise/features/quest_log/domain/services/quest_measure.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/cycle_snapshot.dart';
@@ -120,28 +121,38 @@ class BuildCycleSnapshot {
     );
     final plan = _planner.plan(input);
 
-    final views = [
-      for (final r in inputs.routines)
-        RoutineView(
-          routine: r,
-          status: _planner.statusOf(r.type, input, plan: plan),
-          doneToday: today.where((e) => e.type == r.type && e.outcome == ReminderOutcome.done).length,
-          canSnooze: (history[r.type]?.snoozesSinceDone ?? 0) < kMaxSnoozes,
-        ),
-    ];
-
     final hydration = inputs.routines.where((r) => r.type == RoutineType.hydration).firstOrNull;
+    final waterMl = today.fold<int>(0, (sum, e) => sum + (e.waterMl ?? 0));
+    final waterTargetMl = (hydration?.dailyTarget ?? 8) * inputs.settings.waterPerTapMl;
+
+    RoutineView view(Routine r) {
+      final done = today.where((e) => e.type == r.type && e.outcome == ReminderOutcome.done).length;
+      return RoutineView(
+        routine: r,
+        status: _planner.statusOf(r.type, input, plan: plan),
+        doneToday: done,
+        canSnooze: (history[r.type]?.snoozesSinceDone ?? 0) < kMaxSnoozes,
+        progress: QuestMeasure.of(
+          r.type,
+          done: done,
+          target: r.dailyTarget,
+          waterMl: waterMl,
+          waterTargetMl: waterTargetMl,
+        ).fraction,
+      );
+    }
+
     return CycleSnapshot(
       computedAt: now,
-      routines: views,
+      routines: [for (final r in inputs.routines) view(r)],
       onDuty: _planner.currentWindow(input) != null,
       nextUp: plan.firstOrNull,
       nextWorkStart: _planner.nextWorkStart(input),
       activeShield: inputs.shields.where((s) => s.isActiveAt(now)).lastOrNull,
       todayOverride: input.overrideFor(localDateOf(now, location)),
       nextRecovery: plan.where((p) => p.recovery).firstOrNull,
-      waterMlToday: today.fold<int>(0, (sum, e) => sum + (e.waterMl ?? 0)),
-      waterTargetMl: (hydration?.dailyTarget ?? 8) * inputs.settings.waterPerTapMl,
+      waterMlToday: waterMl,
+      waterTargetMl: waterTargetMl,
       nextChangeAt: _planner.nextChangeAt(input, plan: plan),
     );
   }

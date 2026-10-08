@@ -118,6 +118,26 @@ void main() {
       expect(s.overallProgress, closeTo(0.25 / 3, 1e-9));
     });
 
+    test('hydration progress is ml logged over the ml target; others count completions', () {
+      final s = build(
+        inputs([
+          ReminderEvent(
+            type: RoutineType.hydration,
+            outcome: ReminderOutcome.done,
+            at: at(cairo, 2026, 10, 5, 9, 30),
+            waterMl: 500,
+          ),
+          ReminderEvent(type: RoutineType.stretch, outcome: ReminderOutcome.done, at: at(cairo, 2026, 10, 5, 10)),
+        ]),
+        now: at(cairo, 2026, 10, 5, 11),
+        location: cairo,
+      );
+      final hydration = s.viewOf(RoutineType.hydration)!;
+      expect(hydration.doneToday, 1);
+      expect(hydration.progress, 0.25); // 500 / 2000 ml, not 1 / 8
+      expect(s.viewOf(RoutineType.stretch)!.progress, closeTo(1 / 6, 1e-9));
+    });
+
     test('off duty on Saturday with Sunday 09:00 as next work start', () {
       final s = build(inputs(const []), now: at(cairo, 2026, 10, 10, 12), location: cairo);
       expect(s.onDuty, isFalse);

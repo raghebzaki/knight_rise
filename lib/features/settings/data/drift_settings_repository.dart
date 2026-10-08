@@ -36,6 +36,14 @@ class DriftSettingsRepository implements SettingsRepository {
         ),
       );
 
+  @override
+  Future<void> markRetentionRun(DateTime at) => _db
+      .into(_db.appSettingsTable)
+      .insert(
+        AppSettingsTableCompanion.insert(id: const Value(1), lastRetentionRunAt: Value(at)),
+        onConflict: DoUpdate((_) => AppSettingsTableCompanion(lastRetentionRunAt: Value(at))),
+      );
+
   static AppSettings _toDomain(SettingsRow? r) => r == null
       ? const AppSettings()
       : AppSettings(

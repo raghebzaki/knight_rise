@@ -14,13 +14,14 @@ abstract class RoutineView with _$RoutineView {
     required RoutineStatus status,
     required int doneToday,
     required bool canSnooze,
+
+    /// Share of today's goal reached, 0..1 (`QuestMeasure`: ml for hydration).
+    required double progress,
   }) = _RoutineView;
 
   const RoutineView._();
 
   RoutineType get type => routine.type;
-
-  double get progress => (doneToday / routine.dailyTarget).clamp(0, 1).toDouble();
 }
 
 /// Everything the home screen renders, computed at [computedAt].

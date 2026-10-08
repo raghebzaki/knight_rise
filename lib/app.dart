@@ -11,6 +11,7 @@ import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
+import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
 import 'package:knight_rise/features/scheduler/presentation/schedule_sync_service.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
@@ -43,6 +44,7 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
       onResume: () {
         unawaited(_sync.onResume());
         unawaited(_permission.check());
+        unawaited(_maintainHistory());
       },
     );
     unawaited(_permission.check());
@@ -50,6 +52,17 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
       if (mounted) setState(() => _scope = UniqueKey());
     });
     unawaited(_sync.start());
+    unawaited(_maintainHistory());
+  }
+
+  /// Finalizes past days and prunes old data (launch and resume; the hourly
+  /// background task does the same). Never throws.
+  Future<void> _maintainHistory() async {
+    try {
+      await getIt<MaintainHistory>()();
+    } on Object catch (e, st) {
+      debugPrint('History maintenance failed: $e\n$st');
+    }
   }
 
   @override

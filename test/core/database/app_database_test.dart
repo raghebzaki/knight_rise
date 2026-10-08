@@ -87,6 +87,27 @@ void main() {
     expect((await settings.get()).lastRetentionRunAt, isNull);
   });
 
+  test('markRetentionRun writes only last_retention_run_at', () async {
+    final settings = DriftSettingsRepository(db);
+    final stale = await settings.get();
+    await settings.save(stale.copyWith(streakThresholdPercent: 90, timezoneId: 'Africa/Cairo'));
+    final at = DateTime.utc(2026, 10, 8, 3);
+    await settings.markRetentionRun(at);
+    final s = await settings.get();
+    expect(s.streakThresholdPercent, 90);
+    expect(s.timezoneId, 'Africa/Cairo');
+    expect(s.lastRetentionRunAt!.isAtSameMomentAs(at), isTrue);
+  });
+
+  test('markRetentionRun creates the settings row when missing', () async {
+    await db.delete(db.appSettingsTable).go();
+    final at = DateTime.utc(2026, 10, 8, 3);
+    await DriftSettingsRepository(db).markRetentionRun(at);
+    final s = await DriftSettingsRepository(db).get();
+    expect(s.lastRetentionRunAt!.isAtSameMomentAs(at), isTrue);
+    expect(s.streakThresholdPercent, 70);
+  });
+
   test('events are filtered by time and keep every field', () async {
     final repo = DriftReminderEventRepository(db);
     final day = DateTime(2026, 10, 5);

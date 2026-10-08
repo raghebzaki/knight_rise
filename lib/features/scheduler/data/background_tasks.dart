@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 import 'package:knight_rise/core/config/background_ids.dart';
 import 'package:knight_rise/core/di/bootstrap_background.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/services/schedule_reconciler.dart';
 import 'package:workmanager/workmanager.dart';
@@ -17,8 +18,12 @@ const Duration reconcileInterval = Duration(hours: 1);
 @pragma('vm:entry-point')
 void knightCallbackDispatcher() {
   Workmanager().executeTask(
-    (task, inputData) =>
-        runBackgroundTask(task, bootstrap: bootstrapBackground, reconciler: () async => getIt<ScheduleReconciler>()),
+    (task, inputData) => runBackgroundTask(
+      task,
+      bootstrap: bootstrapBackground,
+      reconciler: () async => getIt<ScheduleReconciler>(),
+      maintainHistory: () => getIt<MaintainHistory>()(),
+    ),
   );
 }
 
@@ -29,12 +34,16 @@ void knightCallbackDispatcher() {
 /// error) returns `true`: the next periodic wake-up retries anyway and we
 /// don't want OS retry storms.
 ///
+/// After the reconcile, [maintainHistory] finalizes past days and prunes old
+/// data (Milestone 4); its failure is logged and never affects the result.
+///
 /// The task name is only logged: Android passes [BackgroundIds.reconcileTaskName]
 /// while iOS passes the BGTask identifier, and both mean "reconcile".
 Future<bool> runBackgroundTask(
   String task, {
   required Future<void> Function() bootstrap,
   required Future<ScheduleReconciler> Function() reconciler,
+  required Future<void> Function() maintainHistory,
 }) async {
   debugPrint('[background] task "$task" started');
   try {
@@ -48,6 +57,11 @@ Future<bool> runBackgroundTask(
     if (run.error != null) debugPrint('[background] reconcile recorded an error: ${run.error}');
   } on Object catch (e, st) {
     debugPrint('[background] reconcile threw for "$task": $e\n$st');
+  }
+  try {
+    await maintainHistory();
+  } on Object catch (e, st) {
+    debugPrint('[background] history maintenance failed for "$task": $e\n$st');
   }
   return true;
 }

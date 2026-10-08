@@ -26,6 +26,7 @@ void main() {
         'whatever-name',
         bootstrap: () async => bootstraps++,
         reconciler: () async => reconciler,
+        maintainHistory: () async {},
       );
       expect(ok, isTrue);
       expect(bootstraps, 1);
@@ -33,13 +34,23 @@ void main() {
     });
 
     test('returns true when the run recorded an error', () async {
-      final ok = await runBackgroundTask('t', bootstrap: () async {}, reconciler: () async => _ErrorReconciler());
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async {},
+        reconciler: () async => _ErrorReconciler(),
+        maintainHistory: () async {},
+      );
       expect(ok, isTrue);
     });
 
     test('returns true when reconcile throws', () async {
       final reconciler = FakeScheduleReconciler()..throwOnNext = StateError('x');
-      final ok = await runBackgroundTask('t', bootstrap: () async {}, reconciler: () async => reconciler);
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async {},
+        reconciler: () async => reconciler,
+        maintainHistory: () async {},
+      );
       expect(ok, isTrue);
     });
 
@@ -49,9 +60,59 @@ void main() {
         't',
         bootstrap: () async => throw StateError('no db'),
         reconciler: () async => reconciler,
+        maintainHistory: () async {},
       );
       expect(ok, isFalse);
       expect(reconciler.calls, isEmpty);
+    });
+  });
+
+  group('runBackgroundTask history maintenance', () {
+    test('runs after the reconcile', () async {
+      final reconciler = FakeScheduleReconciler();
+      List<ReconcileTrigger>? seen;
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async {},
+        reconciler: () async => reconciler,
+        maintainHistory: () async => seen = [...reconciler.calls],
+      );
+      expect(ok, isTrue);
+      expect(seen, [ReconcileTrigger.periodic]);
+    });
+
+    test('still runs when the reconcile throws', () async {
+      var ran = false;
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async {},
+        reconciler: () async => FakeScheduleReconciler()..throwOnNext = StateError('x'),
+        maintainHistory: () async => ran = true,
+      );
+      expect(ok, isTrue);
+      expect(ran, isTrue);
+    });
+
+    test('a failure is logged and the task still succeeds', () async {
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async {},
+        reconciler: () async => FakeScheduleReconciler(),
+        maintainHistory: () async => throw StateError('db'),
+      );
+      expect(ok, isTrue);
+    });
+
+    test('is skipped when bootstrap fails', () async {
+      var ran = false;
+      final ok = await runBackgroundTask(
+        't',
+        bootstrap: () async => throw StateError('no db'),
+        reconciler: () async => FakeScheduleReconciler(),
+        maintainHistory: () async => ran = true,
+      );
+      expect(ok, isFalse);
+      expect(ran, isFalse);
     });
   });
 

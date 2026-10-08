@@ -30,3 +30,13 @@ DateTime parseDateKey(String key) {
   if (m == null) throw FormatException('Not a YYYY-MM-DD date key', key);
   return DateTime.utc(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
 }
+
+/// Local midnight at the start of the calendar date [date] (date-only, see
+/// [dateOnly]) in [location]. DST-safe: the next day starts at
+/// `startOfDate(addDays(date, 1), location)`, 23 or 25 hours later on a
+/// transition day.
+tz.TZDateTime startOfDate(DateTime date, tz.Location location) =>
+    tz.TZDateTime(location, date.year, date.month, date.day);
+
+/// The date-only value [days] calendar days after [date] (negative goes back).
+DateTime addDays(DateTime date, int days) => DateTime.utc(date.year, date.month, date.day + days);

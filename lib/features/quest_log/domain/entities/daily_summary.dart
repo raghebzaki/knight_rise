@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:knight_rise/features/quest_log/domain/services/quest_measure.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 
 part 'daily_summary.freezed.dart';
@@ -39,4 +40,19 @@ abstract class DailySummary with _$DailySummary {
     required DateTime finalizedAt,
     @Default(<RoutineDaySummary>[]) List<RoutineDaySummary> routines,
   }) = _DailySummary;
+
+  const DailySummary._();
+
+  /// Whether the day can extend or break a streak: a work day with at least
+  /// one enabled routine. Every other day is neutral.
+  bool get countsTowardStreak => isWorkDay && routines.any((r) => r.enabled);
+
+  /// [routine]'s progress that day (hydration in ml).
+  QuestMeasure measureOf(RoutineDaySummary routine) => QuestMeasure.of(
+    routine.type,
+    done: routine.done,
+    target: routine.target,
+    waterMl: waterMl,
+    waterTargetMl: waterTargetMl,
+  );
 }

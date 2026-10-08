@@ -352,6 +352,12 @@ class _HealthChip extends StatelessWidget {
   }
 }
 
+/// "1250 / 2000 ml" for hydration (progress is measured in ml), "3 / 6"
+/// otherwise.
+String _progressText(AppLocalizations l, CycleSnapshot snapshot, RoutineView v) => v.type == RoutineType.hydration
+    ? l.waterProgress(snapshot.waterMlToday, snapshot.waterTargetMl)
+    : l.progressOf(v.doneToday, v.routine.dailyTarget);
+
 class _QuestHero extends StatelessWidget {
   const _QuestHero({required this.snapshot});
 
@@ -377,7 +383,7 @@ class _QuestHero extends StatelessWidget {
                 RingSegment(
                   progress: v.progress,
                   color: tokens.routineColor(v.type),
-                  label: '${v.type.label(l)} ${l.progressOf(v.doneToday, v.routine.dailyTarget)}',
+                  label: '${v.type.label(l)} ${_progressText(l, snapshot, v)}',
                 ),
             ],
             center: Text('$percent%', style: text.displayMedium),
@@ -394,7 +400,7 @@ class _QuestHero extends StatelessWidget {
                   children: [
                     Icon(v.type.icon, size: 16, color: tokens.routineColor(v.type)),
                     const SizedBox(width: KnightSpacing.xs),
-                    Text(l.progressOf(v.doneToday, v.routine.dailyTarget), style: text.labelMedium),
+                    Text(_progressText(l, snapshot, v), style: text.labelMedium),
                   ],
                 ),
             ],

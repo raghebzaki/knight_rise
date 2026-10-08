@@ -44,6 +44,17 @@
       }
     }
   },
+  "waterProgress": "{ml} / {target} ml",
+  "@waterProgress": {
+    "placeholders": {
+      "ml": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "progressOf": "{done} / {target}",
   "@progressOf": {
     "placeholders": {
