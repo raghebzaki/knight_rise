@@ -70,6 +70,13 @@ class AppSettingsTable extends Table {
   /// Last time the 90-day retention job ran; it runs at most once a day.
   DateTimeColumn get lastRetentionRunAt => dateTime().nullable()();
 
+  /// Haptic feedback on actions (Settings toggle).
+  BoolColumn get hapticsEnabled => boolean().withDefault(const Constant(true))();
+
+  /// Local date (`YYYY-MM-DD`) of the last rank-up celebration, so it is
+  /// shown once per rank-up day.
+  TextColumn get rankCelebratedOn => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -175,7 +182,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -203,6 +210,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.appSettings, schema.appSettings.lastRetentionRunAt);
         await m.createTable(schema.dailySummaries);
         await m.createTable(schema.dailyRoutineSummaries);
+      },
+      from4To5: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.hapticsEnabled);
+        await m.addColumn(schema.appSettings, schema.appSettings.rankCelebratedOn);
       },
     ),
     beforeOpen: (details) async {

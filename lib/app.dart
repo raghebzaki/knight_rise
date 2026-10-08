@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
@@ -75,8 +76,11 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<Clock>.value(
-      value: getIt<Clock>(),
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<Clock>.value(value: getIt<Clock>()),
+        RepositoryProvider<Haptics>.value(value: getIt<Haptics>()),
+      ],
       child: MultiBlocProvider(
         key: _scope,
         providers: [

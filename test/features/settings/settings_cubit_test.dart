@@ -43,4 +43,15 @@ void main() {
     await settle();
     expect(cubit.state.schedule.isEmpty, isTrue);
   });
+
+  test('setStreakThreshold snaps to 5 % steps within 50..100 and keeps other fields', () async {
+    await settle();
+    await cubit.setStreakThreshold(83);
+    expect(settings.current.streakThresholdPercent, 85);
+    await cubit.setStreakThreshold(20);
+    expect(settings.current.streakThresholdPercent, 50);
+    await cubit.setStreakThreshold(140);
+    expect(settings.current.streakThresholdPercent, 100);
+    expect(settings.current.shieldRecoverOnExit, isTrue);
+  });
 }

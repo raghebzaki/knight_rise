@@ -190,4 +190,79 @@ void main() {
     expect(view.today.countsTowardStreak, isFalse);
     expect(view.streak.current, 1);
   });
+
+  group('rank-up', () {
+    /// Six qualified days before Mon 12 Oct (Fri/Sat rest): today's
+    /// qualification makes it 7 → Knight.
+    QuestLogHarness knightDay() => QuestLogHarness(
+      now: at(cairo, 2026, 10, 12, 16),
+      history: [
+        for (final n in [4, 5, 6, 7, 8, 11]) pastDay(d(n)),
+        pastDay(d(9), workDay: false),
+        pastDay(d(10), workDay: false),
+      ],
+    );
+
+    Future<void> qualifyToday(QuestLogHarness h) async {
+      for (final r in Routine.defaults) {
+        for (var i = 0; i < r.dailyTarget; i++) {
+          await h.events.add(
+            ReminderEvent(
+              type: r.type,
+              outcome: ReminderOutcome.done,
+              at: at(cairo, 2026, 10, 12, 9),
+              waterMl: r.type == RoutineType.hydration ? 250 : null,
+            ),
+          );
+        }
+      }
+    }
+
+    test('reaching a new rank today is flagged until marked seen', () async {
+      final h = knightDay();
+      final cubit = h.cubit()..start();
+      addTearDown(cubit.close);
+      expect((await ready(cubit)).rankUp, isNull); // 6 days: Squire, nothing new yet
+
+      await qualifyToday(h);
+      await settle();
+      expect(cubit.state.view!.streak.current, 7);
+      expect(cubit.state.view!.rankUp, KnightRank.knight);
+
+      await cubit.markRankUpSeen();
+      await settle();
+      expect(h.settings.current.rankCelebratedOn, d(12));
+      expect(cubit.state.view!.rankUp, isNull);
+    });
+
+    test('already celebrated today: not flagged again (e.g. after a restart)', () async {
+      final h = knightDay();
+      await h.settings.markRankCelebrated(d(12));
+      await qualifyToday(h);
+      final cubit = h.cubit()..start();
+      addTearDown(cubit.close);
+      final view = await ready(cubit);
+      expect(view.streak.rank, KnightRank.knight);
+      expect(view.rankUp, isNull);
+    });
+
+    test('a celebration from an earlier day does not block today', () async {
+      final h = knightDay();
+      await h.settings.markRankCelebrated(d(8));
+      await qualifyToday(h);
+      final cubit = h.cubit()..start();
+      addTearDown(cubit.close);
+      expect((await ready(cubit)).rankUp, KnightRank.knight);
+    });
+
+    test('qualifying without crossing a rank boundary is not a rank-up', () async {
+      final h = QuestLogHarness(now: at(cairo, 2026, 10, 12, 16), history: [pastDay(d(11))]);
+      await qualifyToday(h);
+      final cubit = h.cubit()..start();
+      addTearDown(cubit.close);
+      final view = await ready(cubit);
+      expect(view.streak.current, 2);
+      expect(view.rankUp, isNull);
+    });
+  });
 }

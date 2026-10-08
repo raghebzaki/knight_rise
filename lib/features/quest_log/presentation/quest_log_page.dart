@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
+import 'package:knight_rise/core/widgets/knight_error_view.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/break_page.dart' show kWaterChoicesMl;
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
 import 'package:knight_rise/features/quest_log/domain/entities/daily_summary.dart';
@@ -41,6 +43,22 @@ class _QuestLogPageState extends State<QuestLogPage> {
     _lifecycle = AppLifecycleListener(onResume: _cubit.refresh);
   }
 
+  bool _celebrating = false;
+
+  /// Shows the rank-up once, then records it so it is not shown again today.
+  Future<void> _celebrate(QuestLogView view) async {
+    final rank = view.rankUp;
+    if (rank == null || _celebrating) return;
+    _celebrating = true;
+    unawaited(_cubit.markRankUpSeen());
+    context.haptic(HapticKind.celebrate);
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _RankUpDialog(rank: rank, days: view.streak.current),
+    );
+    _celebrating = false;
+  }
+
   @override
   void dispose() {
     _lifecycle.dispose();
@@ -55,10 +73,15 @@ class _QuestLogPageState extends State<QuestLogPage> {
       value: _cubit,
       child: Scaffold(
         appBar: AppBar(title: Text(l.questLogTitle.toUpperCase(), style: Theme.of(context).textTheme.headlineSmall)),
-        body: BlocBuilder<QuestLogCubit, QuestLogState>(
+        body: BlocConsumer<QuestLogCubit, QuestLogState>(
+          listenWhen: (previous, current) => current.view?.rankUp != null && previous.view?.rankUp == null,
+          listener: (context, state) => unawaited(_celebrate(state.view!)),
           builder: (context, state) => switch (state) {
             QuestLogState(status: QuestLogStatus.ready, :final view?) => _QuestLogBody(view: view),
-            QuestLogState(status: QuestLogStatus.failure, :final error) => Center(child: Text(error ?? '')),
+            QuestLogState(status: QuestLogStatus.failure, :final error) => KnightErrorView(
+              details: error,
+              onRetry: _cubit.start,
+            ),
             _ => const Center(child: CircularProgressIndicator()),
           },
         ),
@@ -76,9 +99,13 @@ class _QuestLogBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = view.today;
     final hydrationOn = today.routines.any((r) => r.type == RoutineType.hydration && r.enabled);
+    // Day 1: nothing finalized and nothing done yet.
+    final cleanSlate =
+        view.history.isEmpty && view.streak.best == 0 && today.routines.every((r) => r.done == 0) && today.waterMl == 0;
     return ListView(
       padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.sm, KnightSpacing.lg, KnightSpacing.xxl),
       children: [
+        if (cleanSlate) ...[const _CleanSlate(), const SizedBox(height: KnightSpacing.lg)],
         _Hero(view: view),
         const SizedBox(height: KnightSpacing.lg),
         for (final r in today.routines) ...[
@@ -205,6 +232,81 @@ class _RankBadge extends StatelessWidget {
   }
 }
 
+class _CleanSlate extends StatelessWidget {
+  const _CleanSlate();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    return KnightCard(
+      key: const Key('quest-clean-slate'),
+      child: Row(
+        children: [
+          Icon(Icons.flag_outlined, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: KnightSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.questCleanSlateTitle, style: text.titleMedium),
+                Text(l.questCleanSlateBody, style: text.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The rank-up moment: the new rank's badge scales in (instantly with
+/// reduced motion), with the streak that earned it.
+class _RankUpDialog extends StatelessWidget {
+  const _RankUpDialog({required this.rank, required this.days});
+
+  final KnightRank rank;
+  final int days;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final name = _rankName(l, rank);
+    return Dialog(
+      key: const Key('rank-up-dialog'),
+      child: Padding(
+        padding: const EdgeInsets.all(KnightSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: reduced ? 1 : 0.4, end: 1),
+              duration: reduced ? Duration.zero : const Duration(milliseconds: 700),
+              curve: Curves.elasticOut,
+              builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+              child: DecoratedBox(
+                decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: context.knight.activeGlow),
+                child: Icon(Icons.military_tech, size: 72, color: scheme.primary),
+              ),
+            ),
+            const SizedBox(height: KnightSpacing.md),
+            Text(l.rankUpTitle.toUpperCase(), style: text.headlineSmall),
+            const SizedBox(height: KnightSpacing.xs),
+            Text(name.toUpperCase(), style: text.titleLarge?.copyWith(color: scheme.primary)),
+            const SizedBox(height: KnightSpacing.sm),
+            Text(l.rankUpBody(name, days), style: text.bodyMedium, textAlign: TextAlign.center),
+            const SizedBox(height: KnightSpacing.lg),
+            FilledButton(onPressed: () => Navigator.of(context).pop(), child: Text(l.rankUpDismiss)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RoutineProgressCard extends StatelessWidget {
   const _RoutineProgressCard({required this.today, required this.routine, required this.lastDoneAt});
 
@@ -263,6 +365,7 @@ class _WaterLogger extends StatelessWidget {
     final cubit = context.read<QuestLogCubit>();
     try {
       final id = await cubit.logWater(ml);
+      if (context.mounted) context.haptic(HapticKind.success);
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(

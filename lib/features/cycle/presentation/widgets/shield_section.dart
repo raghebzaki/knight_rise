@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/countdown_text.dart';
@@ -44,6 +47,7 @@ class ShieldEntry extends StatelessWidget {
       builder: (_) => _PresetSheet(onDuty: onDuty),
     );
     if (choice == null || !context.mounted) return;
+    context.haptic(HapticKind.selection);
     if (choice == ShieldPreset.custom) {
       final minutes = await showDialog<int>(context: context, builder: (_) => const _CustomDurationDialog());
       if (minutes != null) await cubit.start(ShieldPreset.custom, custom: Duration(minutes: minutes));
@@ -158,9 +162,21 @@ class ShieldBanner extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(onPressed: cubit.extend, child: Text(l.shieldExtend)),
+              TextButton(
+                onPressed: () {
+                  context.haptic(HapticKind.light);
+                  unawaited(cubit.extend());
+                },
+                child: Text(l.shieldExtend),
+              ),
               const SizedBox(width: KnightSpacing.sm),
-              FilledButton(onPressed: cubit.end, child: Text(l.shieldEnd)),
+              FilledButton(
+                onPressed: () {
+                  context.haptic(HapticKind.success);
+                  unawaited(cubit.end());
+                },
+                child: Text(l.shieldEnd),
+              ),
             ],
           ),
         ],

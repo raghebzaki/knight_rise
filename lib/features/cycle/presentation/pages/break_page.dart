@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
@@ -51,6 +51,7 @@ class _BreakPageState extends State<BreakPage> {
 
   void _complete(RoutineType type, {int? waterMl}) {
     if (!_done.add(type)) return;
+    context.haptic(HapticKind.success);
     context.read<CycleBloc>().add(RoutineCompleted(type, waterMl: waterMl));
     final next = widget.types.where((t) => !_done.contains(t)).firstOrNull;
     if (next == null) {
@@ -221,7 +222,7 @@ class _EyeRestStepState extends State<_EyeRestStep> {
         if (_remaining <= 0) {
           timer.cancel();
           _timer = null;
-          unawaited(HapticFeedback.lightImpact());
+          if (mounted) context.haptic(HapticKind.light);
         }
       });
     });

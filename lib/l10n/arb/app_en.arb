@@ -613,5 +613,35 @@
       }
     }
   },
-  "statNone": "—"
+  "statNone": "—",
+  "settingsQuestSection": "Quest",
+  "settingsStreakGoal": "Streak goal: {percent}%",
+  "@settingsStreakGoal": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsStreakGoalSubtitle": "A work day extends your streak when every routine reaches this share of its target.",
+  "settingsHaptics": "Haptic feedback",
+  "settingsHapticsSubtitle": "A light vibration when you complete a break, log water or change a Shield.",
+  "rankUpTitle": "Rank up!",
+  "rankUpBody": "You rose to {rank} with a {days}-day streak.",
+  "@rankUpBody": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "rankUpDismiss": "Onward",
+  "questCleanSlateTitle": "Your quest begins today",
+  "questCleanSlateBody": "Complete a break or log water to light up the rings. Your streak starts with your first full work day.",
+  "errorTitle": "Something went wrong",
+  "errorBody": "Your data is safe. Try again in a moment.",
+  "errorRetry": "Try again"
 }

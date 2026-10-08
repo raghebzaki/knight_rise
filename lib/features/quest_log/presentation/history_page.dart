@@ -7,6 +7,7 @@ import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
+import 'package:knight_rise/core/widgets/knight_error_view.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
 import 'package:knight_rise/features/quest_log/domain/services/history_series.dart';
 import 'package:knight_rise/features/quest_log/presentation/history_cubit.dart';
@@ -54,7 +55,7 @@ class _HistoryPageState extends State<HistoryPage> {
         body: BlocBuilder<HistoryCubit, HistoryState>(
           builder: (context, state) => switch (state.status) {
             HistoryStatus.ready => _HistoryBody(state: state),
-            HistoryStatus.failure => Center(child: Text(state.error ?? '')),
+            HistoryStatus.failure => KnightErrorView(details: state.error, onRetry: _cubit.start),
             HistoryStatus.loading => const Center(child: CircularProgressIndicator()),
           },
         ),

@@ -108,6 +108,19 @@ void main() {
     expect(s.streakThresholdPercent, 70);
   });
 
+  test('haptics default on and round-trip; rankCelebratedOn is stored as a date key', () async {
+    final settings = DriftSettingsRepository(db);
+    expect((await settings.get()).hapticsEnabled, isTrue);
+    expect((await settings.get()).rankCelebratedOn, isNull);
+    await settings.save((await settings.get()).copyWith(hapticsEnabled: false, streakThresholdPercent: 90));
+    await settings.markRankCelebrated(DateTime(2026, 10, 12, 18, 30));
+    final s = await settings.get();
+    expect(s.hapticsEnabled, isFalse);
+    expect(s.streakThresholdPercent, 90);
+    expect(s.rankCelebratedOn, DateTime.utc(2026, 10, 12));
+    expect((await db.select(db.appSettingsTable).getSingle()).rankCelebratedOn, '2026-10-12');
+  });
+
   test('events are filtered by time and keep every field', () async {
     final repo = DriftReminderEventRepository(db);
     final day = DateTime(2026, 10, 5);

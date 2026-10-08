@@ -9,6 +9,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
+import 'generated/schema_v5.dart' as v5;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -488,6 +489,82 @@ void main() {
             await newDb.select(newDb.dailyRoutineSummaries).get(),
             isEmpty,
           );
+        },
+      );
+    },
+  );
+
+  test(
+    'migration from v4 to v5 keeps settings and summaries, enables haptics',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 4,
+        newVersion: 5,
+        createOld: v4.DatabaseAtV4.new,
+        createNew: v5.DatabaseAtV5.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch
+            ..insertAll(oldDb.appSettings, [
+              const v4.AppSettingsData(
+                id: 1,
+                themeVariant: 'amoled',
+                precisionTiming: 1,
+                waterPerTapMl: 250,
+                timezoneId: 'Africa/Cairo',
+                onboardingCompleted: 1,
+                shieldRecoverOnExit: 1,
+                streakThresholdPercent: 80,
+                lastRetentionRunAt: 1760000000,
+              ),
+            ])
+            ..insertAll(oldDb.dailySummaries, [
+              const v4.DailySummariesData(
+                date: '2026-10-12',
+                isWorkDay: 1,
+                waterMl: 1500,
+                waterTargetMl: 2000,
+                focusMinutes: 25,
+                thresholdPercent: 80,
+                qualified: 0,
+                finalizedAt: 1760300000,
+              ),
+            ])
+            ..insertAll(oldDb.dailyRoutineSummaries, [
+              const v4.DailyRoutineSummariesData(
+                date: '2026-10-12',
+                routineType: 'stretch',
+                done: 4,
+                target: 6,
+                enabled: 1,
+              ),
+            ]);
+        },
+        validateItems: (newDb) async {
+          expect(await newDb.select(newDb.appSettings).get(), [
+            const v5.AppSettingsData(
+              id: 1,
+              themeVariant: 'amoled',
+              precisionTiming: 1,
+              waterPerTapMl: 250,
+              timezoneId: 'Africa/Cairo',
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 1,
+              streakThresholdPercent: 80,
+              lastRetentionRunAt: 1760000000,
+              hapticsEnabled: 1,
+            ),
+          ]);
+          expect(await newDb.select(newDb.dailySummaries).get(), hasLength(1));
+          expect(await newDb.select(newDb.dailyRoutineSummaries).get(), [
+            const v5.DailyRoutineSummariesData(
+              date: '2026-10-12',
+              routineType: 'stretch',
+              done: 4,
+              target: 6,
+              enabled: 1,
+            ),
+          ]);
         },
       );
     },

@@ -238,6 +238,10 @@ class FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<void> markRetentionRun(DateTime at) async => _cell.set(_cell.value.copyWith(lastRetentionRunAt: at));
+
+  @override
+  Future<void> markRankCelebrated(DateTime date) async =>
+      _cell.set(_cell.value.copyWith(rankCelebratedOn: dateOnly(date)));
 }
 
 /// Records every reconcile call. [delay] simulates a slow reconcile.

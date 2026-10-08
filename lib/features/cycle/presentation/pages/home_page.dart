@@ -7,11 +7,13 @@ import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/config/app_info.dart';
 import 'package:knight_rise/core/config/flavor.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
+import 'package:knight_rise/core/widgets/knight_error_view.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/countdown_text.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
@@ -155,7 +157,10 @@ class _HomePageState extends State<HomePage> {
               showPausedBanner: _pausedDay == _dayKey(context.read<Clock>().now()) && !_pausedDismissed,
               onDismissPaused: () => setState(() => _pausedDismissed = true),
             ),
-            CycleState(status: CycleStatus.failure, :final error) => Center(child: Text(error ?? '')),
+            CycleState(status: CycleStatus.failure, :final error) => KnightErrorView(
+              details: error,
+              onRetry: () => context.read<CycleBloc>().add(const CycleStarted()),
+            ),
             _ => const Center(child: CircularProgressIndicator()),
           },
         ),
@@ -443,6 +448,7 @@ class _NextUpCard extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () {
+                context.haptic(HapticKind.success);
                 final bloc = context.read<CycleBloc>();
                 for (final v in due) {
                   bloc.add(RoutineCompleted(v.type));
@@ -564,13 +570,19 @@ class _RoutineCard extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: view.canSnooze && (isDue || view.status is StatusUpcoming)
-                      ? () => context.read<CycleBloc>().add(RoutineSnoozed(view.type))
+                      ? () {
+                          context.haptic(HapticKind.light);
+                          context.read<CycleBloc>().add(RoutineSnoozed(view.type));
+                        }
                       : null,
                   child: Text(l.snooze10),
                 ),
                 const SizedBox(width: KnightSpacing.sm),
                 FilledButton(
-                  onPressed: () => context.read<CycleBloc>().add(RoutineCompleted(view.type)),
+                  onPressed: () {
+                    context.haptic(HapticKind.success);
+                    context.read<CycleBloc>().add(RoutineCompleted(view.type));
+                  },
                   child: Text(l.done),
                 ),
               ],

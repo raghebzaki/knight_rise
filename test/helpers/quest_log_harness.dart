@@ -41,6 +41,7 @@ class QuestLogHarness {
     CompleteRoutine(events, settings, clock),
     UndoCompletion(events),
     maintain,
+    settings,
     clock,
     location,
   );

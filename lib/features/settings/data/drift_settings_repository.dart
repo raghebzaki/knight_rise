@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:injectable/injectable.dart';
 import 'package:knight_rise/core/database/app_database.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
+import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/features/settings/domain/entities/app_settings.dart';
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
 
@@ -33,6 +34,8 @@ class DriftSettingsRepository implements SettingsRepository {
           shieldRecoverOnExit: Value(s.shieldRecoverOnExit),
           streakThresholdPercent: Value(s.streakThresholdPercent),
           lastRetentionRunAt: Value(s.lastRetentionRunAt),
+          hapticsEnabled: Value(s.hapticsEnabled),
+          rankCelebratedOn: Value(s.rankCelebratedOn == null ? null : dateKey(s.rankCelebratedOn!)),
         ),
       );
 
@@ -42,6 +45,14 @@ class DriftSettingsRepository implements SettingsRepository {
       .insert(
         AppSettingsTableCompanion.insert(id: const Value(1), lastRetentionRunAt: Value(at)),
         onConflict: DoUpdate((_) => AppSettingsTableCompanion(lastRetentionRunAt: Value(at))),
+      );
+
+  @override
+  Future<void> markRankCelebrated(DateTime date) => _db
+      .into(_db.appSettingsTable)
+      .insert(
+        AppSettingsTableCompanion.insert(id: const Value(1), rankCelebratedOn: Value(dateKey(date))),
+        onConflict: DoUpdate((_) => AppSettingsTableCompanion(rankCelebratedOn: Value(dateKey(date)))),
       );
 
   static AppSettings _toDomain(SettingsRow? r) => r == null
@@ -55,5 +66,7 @@ class DriftSettingsRepository implements SettingsRepository {
           shieldRecoverOnExit: r.shieldRecoverOnExit,
           streakThresholdPercent: r.streakThresholdPercent,
           lastRetentionRunAt: r.lastRetentionRunAt,
+          hapticsEnabled: r.hapticsEnabled,
+          rankCelebratedOn: r.rankCelebratedOn == null ? null : parseDateKey(r.rankCelebratedOn!),
         );
 }

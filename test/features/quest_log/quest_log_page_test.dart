@@ -159,4 +159,51 @@ void main() {
     expect(find.descendant(of: hydration, matching: find.text(l.questDisabled)), findsOneWidget);
     await unmount(tester);
   });
+
+  testWidgets('day 1: a clean-slate card that goes away after the first action', (tester) async {
+    final h = QuestLogHarness(now: at(cairo, 2026, 10, 12, 11));
+    await pumpPage(tester, h);
+    expect(find.byKey(const Key('quest-clean-slate')), findsOneWidget);
+    expect(find.text(l.questCleanSlateTitle), findsOneWidget);
+    await tester.tap(find.byKey(const Key('water-250')));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const Key('quest-clean-slate')), findsNothing);
+    await tester.pump(kWaterUndoWindow + const Duration(seconds: 1));
+    await unmount(tester);
+  });
+
+  testWidgets('no clean slate once there is history', (tester) async {
+    await pumpPage(tester, QuestLogHarness(now: at(cairo, 2026, 10, 12, 11), history: [pastDay(d(11))]));
+    expect(find.byKey(const Key('quest-clean-slate')), findsNothing);
+    await unmount(tester);
+  });
+
+  testWidgets('a rank-up shows the celebration once and records it', (tester) async {
+    final h = QuestLogHarness(
+      now: at(cairo, 2026, 10, 12, 16),
+      history: [
+        for (final n in [4, 5, 6, 7, 8, 11]) pastDay(d(n)),
+        pastDay(d(9), workDay: false),
+        pastDay(d(10), workDay: false),
+      ],
+    );
+    for (final r in Routine.defaults) {
+      for (var i = 0; i < r.dailyTarget; i++) {
+        await h.events.add(done(r.type, 10));
+      }
+    }
+    await pumpPage(tester, h);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const Key('rank-up-dialog')), findsOneWidget);
+    expect(find.text('RANK UP!'), findsOneWidget);
+    expect(find.text('You rose to Knight with a 7-day streak.'), findsOneWidget);
+    expect(h.settings.current.rankCelebratedOn, d(12));
+
+    await tester.tap(find.text('Onward'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rank-up-dialog')), findsNothing);
+    expect(find.text('KNIGHT'), findsOneWidget);
+    await unmount(tester);
+  });
 }

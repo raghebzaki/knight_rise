@@ -87,6 +87,13 @@ class _SettingsView extends StatelessWidget {
                       ),
                     ),
                   ),
+                  SwitchListTile(
+                    key: const Key('hapticsSwitch'),
+                    title: Text(l.settingsHaptics),
+                    subtitle: Text(l.settingsHapticsSubtitle),
+                    value: state.settings.hapticsEnabled,
+                    onChanged: (v) => cubit.setHapticsEnabled(value: v),
+                  ),
                 ],
               ),
               _Group(
@@ -106,6 +113,10 @@ class _SettingsView extends StatelessWidget {
                     trailing: const Icon(Icons.chevron_right),
                   ),
                 ],
+              ),
+              _Group(
+                title: l.settingsQuestSection,
+                children: [_StreakGoal(percent: state.settings.streakThresholdPercent)],
               ),
               _Group(
                 title: l.settingsShield,
@@ -150,6 +161,54 @@ class _SettingsView extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Streak goal slider (50–100 % in 5 % steps). Drags update the label
+/// locally; the value is saved once, when the drag ends.
+class _StreakGoal extends StatefulWidget {
+  const _StreakGoal({required this.percent});
+
+  final int percent;
+
+  @override
+  State<_StreakGoal> createState() => _StreakGoalState();
+}
+
+class _StreakGoalState extends State<_StreakGoal> {
+  double? _dragging;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final text = Theme.of(context).textTheme;
+    final value = (_dragging ?? widget.percent.toDouble()).clamp(
+      SettingsCubit.streakGoalMin.toDouble(),
+      SettingsCubit.streakGoalMax.toDouble(),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(KnightSpacing.lg, KnightSpacing.md, KnightSpacing.lg, KnightSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.settingsStreakGoal(value.round()), style: text.titleMedium),
+          Text(l.settingsStreakGoalSubtitle, style: text.bodySmall),
+          Slider(
+            key: const Key('streakGoalSlider'),
+            value: value,
+            min: SettingsCubit.streakGoalMin.toDouble(),
+            max: SettingsCubit.streakGoalMax.toDouble(),
+            divisions: (SettingsCubit.streakGoalMax - SettingsCubit.streakGoalMin) ~/ SettingsCubit.streakGoalStep,
+            label: '${value.round()}%',
+            onChanged: (v) => setState(() => _dragging = v),
+            onChangeEnd: (v) {
+              setState(() => _dragging = null);
+              unawaited(context.read<SettingsCubit>().setStreakThreshold(v.round()));
+            },
+          ),
+        ],
       ),
     );
   }

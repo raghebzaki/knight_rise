@@ -29,5 +29,11 @@ abstract class AppSettings with _$AppSettings {
 
     /// Last run of the 90-day retention job (it runs at most once a day).
     DateTime? lastRetentionRunAt,
+
+    /// Haptic feedback on actions.
+    @Default(true) bool hapticsEnabled,
+
+    /// Local date of the last rank-up celebration (date-only).
+    DateTime? rankCelebratedOn,
   }) = _AppSettings;
 }

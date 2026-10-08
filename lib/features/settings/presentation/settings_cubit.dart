@@ -41,6 +41,25 @@ class SettingsCubit extends Cubit<SettingsState> {
     await _settings.save(current.copyWith(shieldRecoverOnExit: value));
   }
 
+  Future<void> setHapticsEnabled({required bool value}) async {
+    final current = await _settings.get();
+    await _settings.save(current.copyWith(hapticsEnabled: value));
+  }
+
+  /// Allowed streak goal range and step (percent).
+  static const streakGoalMin = 50;
+  static const streakGoalMax = 100;
+  static const streakGoalStep = 5;
+
+  /// Saves the streak goal, clamped to [streakGoalMin]..[streakGoalMax] and
+  /// snapped to [streakGoalStep]. Applies to days finalized from now on;
+  /// stored days keep the goal they were finalized with.
+  Future<void> setStreakThreshold(int percent) async {
+    final snapped = ((percent / streakGoalStep).round() * streakGoalStep).clamp(streakGoalMin, streakGoalMax);
+    final current = await _settings.get();
+    await _settings.save(current.copyWith(streakThresholdPercent: snapped));
+  }
+
   @override
   Future<void> close() async {
     await _sub.cancel();

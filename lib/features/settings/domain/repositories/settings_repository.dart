@@ -10,4 +10,7 @@ abstract interface class SettingsRepository {
   /// Writes only `lastRetentionRunAt`, so a background run cannot overwrite
   /// a settings change made meanwhile (as a read-modify-[save] could).
   Future<void> markRetentionRun(DateTime at);
+
+  /// Writes only `rankCelebratedOn` (the local [date] of a shown rank-up).
+  Future<void> markRankCelebrated(DateTime date);
 }

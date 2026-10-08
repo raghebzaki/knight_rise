@@ -112,4 +112,30 @@ void main() {
     await pumpSettings(tester);
     expect(find.text('All good'), findsOneWidget);
   });
+
+  testWidgets('streak goal slider shows the goal and saves once the drag ends', (tester) async {
+    await pumpSettings(tester);
+    expect(find.text('Streak goal: 70%'), findsOneWidget);
+    final slider = find.byKey(const Key('streakGoalSlider'));
+    await tester.ensureVisible(slider);
+    await tester.pumpAndSettle();
+    // Drag from the 70 % thumb to the right end of the track.
+    final box = tester.getRect(slider);
+    final gesture = await tester.startGesture(tester.getCenter(slider));
+    await gesture.moveTo(Offset(box.right - 4, box.center.dy));
+    await tester.pump();
+    expect(find.text('Streak goal: 100%'), findsOneWidget);
+    expect(settings.current.streakThresholdPercent, 70); // not saved mid-drag
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(settings.current.streakThresholdPercent, 100);
+    expect(find.text('Streak goal: 100%'), findsOneWidget);
+  });
+
+  testWidgets('haptics switch saves hapticsEnabled', (tester) async {
+    await pumpSettings(tester);
+    await tester.tap(find.byKey(const Key('hapticsSwitch')));
+    await tester.pumpAndSettle();
+    expect(settings.current.hapticsEnabled, isFalse);
+  });
 }

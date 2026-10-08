@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/router/app_router.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
@@ -63,9 +64,15 @@ void main() {
     addTearDown(() => getIt.unregister<ShieldCubit>());
 
     router = buildRouter();
+    // The real service, so taps go through the setting to the platform channel.
+    final hapticsService = Haptics(settings);
+    addTearDown(hapticsService.dispose);
     await tester.pumpWidget(
-      RepositoryProvider<Clock>.value(
-        value: clock,
+      MultiRepositoryProvider(
+        providers: [
+          RepositoryProvider<Clock>.value(value: clock),
+          RepositoryProvider<Haptics>.value(value: hapticsService),
+        ],
         child: MultiBlocProvider(
           providers: [
             BlocProvider(create: (_) => ThemeCubit(settings)),
@@ -151,6 +158,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
+    expect(haptics.last, 'HapticFeedbackType.mediumImpact', reason: 'Done plays the success haptic');
     expect(events.all, hasLength(1));
     expect(events.all.single.type, RoutineType.eyeRest);
     expect(events.all.single.outcome, ReminderOutcome.done);

@@ -20,8 +20,10 @@ class RingSegment {
 /// Concentric progress rings (outer → inner), drawn with a CustomPainter.
 ///
 /// Spec: 10 px stroke, 6 px gap, round caps, sweep gradient from the ring
-/// color to `secondary`, 600 ms ease-out, soft glow at 100 %.
-class KnightRing extends StatelessWidget {
+/// color to `secondary`, 600 ms ease-out, soft glow at 100 %. When a ring
+/// reaches 100 % the whole ring pulses once. With reduced motion
+/// (`MediaQuery.disableAnimations`) progress jumps and nothing pulses.
+class KnightRing extends StatefulWidget {
   const KnightRing({
     required this.segments,
     super.key,
@@ -38,37 +40,74 @@ class KnightRing extends StatelessWidget {
   final Widget? center;
 
   @override
+  State<KnightRing> createState() => _KnightRingState();
+}
+
+class _KnightRingState extends State<KnightRing> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(vsync: this, duration: KnightMotion.ring);
+
+  /// 1 → 1.05 → 1, eased both ways.
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween<double>(begin: 1, end: 1.05).chain(CurveTween(curve: Curves.easeOut)), weight: 1),
+    TweenSequenceItem(tween: Tween<double>(begin: 1.05, end: 1).chain(CurveTween(curve: Curves.easeIn)), weight: 1),
+  ]).animate(_pulse);
+
+  static int _complete(List<RingSegment> segments) => segments.where((s) => s.progress >= 1).length;
+
+  @override
+  void didUpdateWidget(KnightRing old) {
+    super.didUpdateWidget(old);
+    final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (!reduced && _complete(widget.segments) > _complete(old.segments)) {
+      // Starts after the sweep has (nearly) filled the ring.
+      _pulse.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.knight;
     final secondary = Theme.of(context).colorScheme.secondary;
+    final segments = widget.segments;
+    final size = widget.size;
     final label = segments.map((s) => s.label).whereType<String>().join(', ');
+    final reduced = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
     return Semantics(
       label: label.isEmpty ? null : label,
-      child: SizedBox.square(
-        dimension: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            for (var i = 0; i < segments.length; i++)
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: segments[i].progress.clamp(0, 1).toDouble()),
-                duration: KnightMotion.ring,
-                curve: Curves.easeOutCubic,
-                builder: (context, value, _) => CustomPaint(
-                  size: Size.square(size),
-                  painter: _RingPainter(
-                    progress: value,
-                    color: segments[i].color,
-                    gradientEnd: secondary,
-                    track: tokens.ringTrack,
-                    strokeWidth: strokeWidth,
-                    inset: i * (strokeWidth + gap),
+      child: ScaleTransition(
+        scale: _scale,
+        child: SizedBox.square(
+          dimension: size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              for (var i = 0; i < segments.length; i++)
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: segments[i].progress.clamp(0, 1).toDouble()),
+                  duration: reduced ? Duration.zero : KnightMotion.ring,
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, _) => CustomPaint(
+                    size: Size.square(size),
+                    painter: _RingPainter(
+                      progress: value,
+                      color: segments[i].color,
+                      gradientEnd: secondary,
+                      track: tokens.ringTrack,
+                      strokeWidth: widget.strokeWidth,
+                      inset: i * (widget.strokeWidth + widget.gap),
+                    ),
                   ),
                 ),
-              ),
-            if (center != null) ExcludeSemantics(child: center),
-          ],
+              if (widget.center != null) ExcludeSemantics(child: widget.center),
+            ],
+          ),
         ),
       ),
     );
