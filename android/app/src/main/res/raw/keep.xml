@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resource shrinking keeps only resources referenced from code. Dart refers
+     to the notification icon by name (`ic_stat_knight`), which R8 cannot see,
+     so keep it explicitly or notifications fail silently in release builds. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_knight,@drawable/ic_launcher_foreground,@drawable/ic_launcher_monochrome" />

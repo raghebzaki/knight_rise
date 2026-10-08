@@ -38,7 +38,7 @@ class KnightErrorView extends StatelessWidget {
               icon: const Icon(Icons.refresh),
               label: Text(l.errorRetry),
             ),
-            if (Flavor.current.isDev && details != null) ...[
+            if (kDevFlavor && details != null) ...[
               const SizedBox(height: KnightSpacing.lg),
               Text(
                 details,

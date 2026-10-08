@@ -1,0 +1,6 @@
+# Copy to android/key.properties (git-ignored) and fill in. See docs/RELEASE.md.
+# storeFile is relative to android/app/ (or absolute).
+storeFile=../../keys/knight-rise-upload.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

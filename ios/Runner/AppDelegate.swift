@@ -25,7 +25,7 @@ import workmanager_apple
     // and the unique name used from Dart.
     WorkmanagerPlugin.registerPeriodicTask(
       withIdentifier: "com.ragheb.knightRise.reconcile",
-      earliestBeginInSeconds: 60 * 60
+      earliestBeginInSeconds: NSNumber(value: 60 * 60)
     )
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

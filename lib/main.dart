@@ -23,7 +23,7 @@ Future<void> main() async {
   unawaited(getIt<BackgroundScheduler>().register());
   // The router redirects on it, so it must be known before the first frame.
   await getIt<OnboardingGate>().load();
-  if (Flavor.current.isDev && kDebugMode) Bloc.observer = const _LogObserver();
+  if (kDevFlavor && kDebugMode) Bloc.observer = const _LogObserver();
   if (kReleaseMode) ErrorWidget.builder = (_) => const KnightBuildErrorFallback();
   runApp(const KnightRiseApp());
   // Cold start from a notification tap: the plugin reports it as launch

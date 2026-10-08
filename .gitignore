@@ -56,3 +56,11 @@ lib/l10n/generated/
 # Merge/patch leftovers
 *.orig
 *.rej
+
+# Release credentials (see docs/RELEASE.md)
+/keys/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision

@@ -47,6 +47,8 @@ dev_dependencies:
   bloc_test: ^10.0.0
   mocktail: ^1.0.5
   very_good_analysis: ^11.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 flutter:
   uses-material-design: true

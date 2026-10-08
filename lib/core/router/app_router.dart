@@ -72,7 +72,7 @@ GoRouter buildRouter({String initialLocation = '/', OnboardingGate? gate}) => Go
         ),
       ],
     ),
-    if (Flavor.current.isDev) ...[
+    if (kDevFlavor) ...[
       GoRoute(path: '/gallery', builder: (_, _) => const GalleryPage()),
       GoRoute(path: '/diagnostics', builder: (_, _) => const DiagnosticsPage()),
     ],

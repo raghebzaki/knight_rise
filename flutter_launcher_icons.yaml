@@ -1,0 +1,16 @@
+# App icons. Run after adding the artwork in assets/branding/ (docs/RELEASE.md):
+#   dart run flutter_launcher_icons
+# Android: adaptive icon (background color + foreground) with a monochrome
+# layer for Android 13 themed icons. minSdk is 26, so only the adaptive icon
+# and the legacy mipmaps for the Play listing are produced.
+flutter_launcher_icons:
+  android: "ic_launcher"
+  min_sdk_android: 26
+  image_path_android: "assets/branding/app_icon.png"
+  adaptive_icon_background: "#0A1020"
+  adaptive_icon_foreground: "assets/branding/app_icon_foreground.png"
+  adaptive_icon_monochrome: "assets/branding/app_icon_monochrome.png"
+  ios: true
+  image_path_ios: "assets/branding/app_icon_ios.png"
+  remove_alpha_ios: true
+  background_color_ios: "#0A1020"

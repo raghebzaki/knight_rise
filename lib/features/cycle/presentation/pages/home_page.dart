@@ -129,13 +129,13 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
-            if (Flavor.current.isDev)
+            if (kDevFlavor)
               IconButton(
                 tooltip: 'Diagnostics',
                 icon: const Icon(Icons.bug_report_outlined),
                 onPressed: () => context.push('/diagnostics'),
               ),
-            if (Flavor.current.isDev)
+            if (kDevFlavor)
               IconButton(
                 tooltip: l.gallery,
                 icon: const Icon(Icons.palette_outlined),

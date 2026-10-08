@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Midnight background (KnightPalette.midnight.background). -->
+    <color name="ic_launcher_background">#FF0A1020</color>
+    <color name="splash_background">#FF0A1020</color>
+</resources>
