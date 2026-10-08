@@ -52,3 +52,7 @@ app.*.map.json
 *.freezed.dart
 *.config.dart
 lib/l10n/generated/
+
+# Merge/patch leftovers
+*.orig
+*.rej
