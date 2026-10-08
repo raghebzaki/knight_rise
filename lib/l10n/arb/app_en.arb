@@ -517,5 +517,101 @@
         "type": "int"
       }
     }
-  }
+  },
+  "navHistory": "History",
+  "historyTitle": "History",
+  "historyRangeWeek": "7 days",
+  "historyRangeMonth": "30 days",
+  "historyAll": "All routines",
+  "historyChartTitle": "Daily completion",
+  "historyGoalLine": "Goal {percent}%",
+  "@historyGoalLine": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "historyShowTable": "Show as table",
+  "historyShowChart": "Show as chart",
+  "historyKeyWork": "Work day",
+  "historyKeyRest": "Rest day",
+  "historyNoData": "No data",
+  "historyOff": "Off",
+  "historyGoalMet": "Goal met",
+  "historyBelowGoal": "Below goal",
+  "historyPercent": "{percent}%",
+  "@historyPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "historySummary": "{subject}, last {days} days: average {percent}%, goal met on {met} of {work} work days.",
+  "@historySummary": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "met": {
+        "type": "int"
+      },
+      "work": {
+        "type": "int"
+      }
+    }
+  },
+  "historySummaryNoWork": "{subject}, last {days} days: no work days recorded.",
+  "@historySummaryNoWork": {
+    "placeholders": {
+      "subject": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "historyEmpty": "Your history starts after your first full day with Knight Rise.",
+  "statCompletion": "Completion rate",
+  "statCompletionDetail": "{met} of {work} work days met the goal",
+  "@statCompletionDetail": {
+    "placeholders": {
+      "met": {
+        "type": "int"
+      },
+      "work": {
+        "type": "int"
+      }
+    }
+  },
+  "statFocus": "Focus time",
+  "statWater": "Average water",
+  "statWaterValue": "{ml} ml",
+  "@statWaterValue": {
+    "placeholders": {
+      "ml": {
+        "type": "String"
+      }
+    }
+  },
+  "statPerWorkDay": "per work day",
+  "statBestStreak": "Best streak",
+  "statInWindow": "in this period",
+  "statDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "@statDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statNone": "—"
 }

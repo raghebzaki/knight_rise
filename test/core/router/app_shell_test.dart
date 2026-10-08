@@ -11,6 +11,8 @@ import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/home_page.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
+import 'package:knight_rise/features/quest_log/presentation/history_cubit.dart';
+import 'package:knight_rise/features/quest_log/presentation/history_page.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
@@ -58,6 +60,7 @@ void main() {
           location,
         ),
       )
+      ..registerFactory<HistoryCubit>(() => HistoryCubit(quest.summaries, settings, clock, location))
       ..registerFactory<SettingsCubit>(() => SettingsCubit(settings, work))
       ..registerFactory<DeviceHealthCubit>(() => HealthHarness().cubit);
   });
@@ -182,6 +185,21 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('500 ml today'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('/history opens the History tab; the tab bar reaches it from Today', (tester) async {
+    var router = await pumpAt(tester, '/history');
+    expect(find.byType(HistoryPage), findsOneWidget);
+    expect(selectedTab(tester), 2);
+    await unmount(tester);
+
+    router = await pumpAt(tester, '/');
+    await tester.tap(tab('History'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(path(router), '/history');
+    expect(find.byType(HistoryPage), findsOneWidget);
     await unmount(tester);
   });
 }

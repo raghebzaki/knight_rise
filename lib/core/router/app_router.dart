@@ -9,6 +9,7 @@ import 'package:knight_rise/features/diagnostics/presentation/diagnostics_page.d
 import 'package:knight_rise/features/gallery/presentation/gallery_page.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_gate.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_page.dart';
+import 'package:knight_rise/features/quest_log/presentation/history_page.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/presentation/routine_editor_page.dart';
@@ -16,9 +17,10 @@ import 'package:knight_rise/features/routines/presentation/routines_page.dart';
 import 'package:knight_rise/features/settings/presentation/settings_page.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_hours_page.dart';
 
-/// Routes. `/` (Today) and `/quest` (Quest Log) are the bottom-navigation
-/// tabs of [AppShell]; each keeps its state while the other is shown. Every
-/// other route is full screen, above the shell. `/settings`, `/settings/work-hours`, `/settings/routines` and
+/// Routes. `/` (Today), `/quest` (Quest Log) and `/history` are the
+/// bottom-navigation tabs of [AppShell]; each keeps its state while hidden.
+/// Every other route is full screen, above the shell.
+/// `/settings`, `/settings/work-hours`, `/settings/routines` and
 /// `/settings/routines/:type` (invalid type redirects to the list).
 /// `/break?types=hydration,eyeRest` is the notification-tap target;
 /// invalid or empty `types` redirect to `/`.
@@ -39,6 +41,9 @@ GoRouter buildRouter({String initialLocation = '/', OnboardingGate? gate}) => Go
         ),
         StatefulShellBranch(
           routes: [GoRoute(path: '/quest', builder: (_, _) => const QuestLogPage())],
+        ),
+        StatefulShellBranch(
+          routes: [GoRoute(path: '/history', builder: (_, _) => const HistoryPage())],
         ),
       ],
     ),
