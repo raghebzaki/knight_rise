@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:knight_rise/core/time/device_timezone.dart';
+import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/core/time/location_provider.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/pending_reminder.dart';
@@ -15,7 +16,11 @@ import 'package:knight_rise/features/scheduler/domain/repositories/reminder_even
 import 'package:knight_rise/features/scheduler/domain/services/schedule_reconciler.dart';
 import 'package:knight_rise/features/settings/domain/entities/app_settings.dart';
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
+import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
+import 'package:knight_rise/features/shield/domain/repositories/shield_repository.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
+import 'package:knight_rise/features/work_hours/domain/repositories/day_override_repository.dart';
 import 'package:knight_rise/features/work_hours/domain/repositories/work_schedule_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -95,6 +100,66 @@ class FakeReminderEventRepository implements ReminderEventRepository {
     _cell.set([..._cell.value, event.copyWith(id: id)]);
     return id;
   }
+}
+
+class FakeShieldRepository implements ShieldRepository {
+  final _cell = _Cell<List<ShieldSession>>([]);
+  List<ShieldSession> get all => _cell.value;
+
+  List<ShieldSession> _since(DateTime since) => _cell.value.where((s) => s.effectiveEnd.isAfter(since)).toList();
+
+  @override
+  Stream<List<ShieldSession>> watchSince(DateTime since) => _cell.watch((_) => _since(since));
+
+  @override
+  Future<List<ShieldSession>> getSince(DateTime since) async => _since(since);
+
+  @override
+  Future<int> add(ShieldSession session) async {
+    final id = _cell.value.length + 1;
+    _cell.set([..._cell.value, session.copyWith(id: id)]);
+    return id;
+  }
+
+  @override
+  Future<void> update(ShieldSession session) async => _cell.set([
+    for (final s in _cell.value)
+      if (s.id == session.id) session else s,
+  ]);
+
+  @override
+  Future<ShieldSession?> active(DateTime now) async =>
+      (_cell.value.where((s) => s.isActiveAt(now)).toList()..sort((a, b) => a.startAt.compareTo(b.startAt))).lastOrNull;
+}
+
+class FakeDayOverrideRepository implements DayOverrideRepository {
+  final _cell = _Cell<List<DayOverride>>([]);
+  List<DayOverride> get all => _cell.value;
+
+  List<DayOverride> _from(DateTime date) {
+    final key = dateKey(date);
+    return _cell.value.where((o) => dateKey(o.date).compareTo(key) >= 0).toList()
+      ..sort((a, b) => dateKey(a.date).compareTo(dateKey(b.date)));
+  }
+
+  @override
+  Stream<List<DayOverride>> watchFrom(DateTime date) => _cell.watch((_) => _from(date));
+
+  @override
+  Future<List<DayOverride>> getFrom(DateTime date) async => _from(date);
+
+  @override
+  Future<void> set(DayOverride override) async => _cell.set([
+    for (final o in _cell.value)
+      if (dateKey(o.date) != dateKey(override.date)) o,
+    override,
+  ]);
+
+  @override
+  Future<void> clear(DateTime date) async => _cell.set([
+    for (final o in _cell.value)
+      if (dateKey(o.date) != dateKey(date)) o,
+  ]);
 }
 
 class FakeSettingsRepository implements SettingsRepository {
@@ -259,4 +324,41 @@ class FakeNotificationGateway implements NotificationGateway {
 
   @override
   Future<ReminderAction?> launchAction() async => null;
+
+  int requestExactAlarmPermissionCalls = 0;
+
+  @override
+  Future<void> requestExactAlarmPermission() async => requestExactAlarmPermissionCalls++;
+
+  /// `until` of the last [showShieldStatus]; null while the status is cleared.
+  DateTime? shieldStatusUntil;
+  int showShieldStatusCalls = 0;
+  int clearShieldStatusCalls = 0;
+
+  /// When set, [showShieldStatus] and [clearShieldStatus] throw it.
+  Object? throwOnShieldStatus;
+
+  @override
+  Future<void> showShieldStatus({required DateTime until}) async {
+    final err = throwOnShieldStatus;
+    if (err != null) {
+      // Tests throw arbitrary objects on purpose.
+      // ignore: only_throw_errors
+      throw err;
+    }
+    showShieldStatusCalls++;
+    shieldStatusUntil = until;
+  }
+
+  @override
+  Future<void> clearShieldStatus() async {
+    final err = throwOnShieldStatus;
+    if (err != null) {
+      // Tests throw arbitrary objects on purpose.
+      // ignore: only_throw_errors
+      throw err;
+    }
+    clearShieldStatusCalls++;
+    shieldStatusUntil = null;
+  }
 }

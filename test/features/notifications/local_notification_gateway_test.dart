@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:knight_rise/features/notifications/data/background_entry.dart';
 import 'package:knight_rise/features/notifications/data/local_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/data/notification_response_mapper.dart';
@@ -132,6 +133,30 @@ void main() {
       );
       final a = captureSchedule().details.android!;
       expect(a.channelId, 'stretch');
+    });
+
+    test('recovery reminder: "Shield down" copy and "r":1 in the payload', () async {
+      final r = PlannedReminder(
+        fireAt: fireAt,
+        types: const {RoutineType.hydration, RoutineType.stretch},
+        recovery: true,
+      );
+      await gateway.schedule(r, exact: false);
+      final c = verify(
+        () => plugin.zonedSchedule(
+          id: any(named: 'id'),
+          scheduledDate: any(named: 'scheduledDate'),
+          notificationDetails: any(named: 'notificationDetails'),
+          androidScheduleMode: any(named: 'androidScheduleMode'),
+          title: captureAny(named: 'title'),
+          body: captureAny(named: 'body'),
+          payload: captureAny(named: 'payload'),
+        ),
+      ).captured;
+      expect(c[0], 'Shield down');
+      expect(c[1], 'Waiting: Hydration + Quick stretch');
+      expect(ReminderPayload.tryDecode(c[2] as String?)!.recovery, isTrue);
+      expect(c[2], contains('"r":1'));
     });
   });
 
@@ -288,7 +313,104 @@ void main() {
     });
   });
 
+  group('shield status', () {
+    void stubShow() => when(
+      () => plugin.show(
+        id: any(named: 'id'),
+        title: any(named: 'title'),
+        body: any(named: 'body'),
+        notificationDetails: any(named: 'notificationDetails'),
+        payload: any(named: 'payload'),
+      ),
+    ).thenAnswer((_) async {});
+
+    test('Android: ongoing low-importance countdown with an End Shield action', () async {
+      stubShow();
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final until = DateTime.now().add(const Duration(minutes: 30));
+      await gateway.showShieldStatus(until: until);
+
+      final c = verify(
+        () => plugin.show(
+          id: captureAny(named: 'id'),
+          title: captureAny(named: 'title'),
+          body: captureAny(named: 'body'),
+          notificationDetails: captureAny(named: 'notificationDetails'),
+          payload: any(named: 'payload'),
+        ),
+      ).captured;
+      expect(c[0], kShieldStatusNotificationId);
+      expect(c[0], lessThan(kReservedNotificationIdLimit));
+      expect(c[1], 'Shield active');
+      final hm = DateFormat.Hm().format(tz.TZDateTime.from(until, location));
+      expect(c[2], 'Reminders paused until $hm');
+      final a = (c[3] as NotificationDetails).android!;
+      expect(a.channelId, 'system');
+      expect(a.importance, Importance.low);
+      expect(a.ongoing, isTrue);
+      expect(a.autoCancel, isFalse);
+      expect(a.onlyAlertOnce, isTrue);
+      expect(a.usesChronometer, isTrue);
+      expect(a.chronometerCountDown, isTrue);
+      expect(a.when, until.millisecondsSinceEpoch);
+      expect(a.timeoutAfter, inInclusiveRange(29 * 60 * 1000, 30 * 60 * 1000));
+      expect(a.actions!.map((x) => x.id), ['end_shield']);
+      expect(a.actions!.single.title, 'End Shield');
+      expect(a.actions!.single.showsUserInterface, isFalse);
+    });
+
+    test('an end in the past clears instead of showing', () async {
+      stubShow();
+      when(() => plugin.cancel(id: any(named: 'id'))).thenAnswer((_) async {});
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      await gateway.showShieldStatus(until: DateTime.now().subtract(const Duration(minutes: 1)));
+      verifyNever(
+        () => plugin.show(
+          id: any(named: 'id'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+          notificationDetails: any(named: 'notificationDetails'),
+          payload: any(named: 'payload'),
+        ),
+      );
+      verify(() => plugin.cancel(id: kShieldStatusNotificationId)).called(1);
+    });
+
+    test('clear cancels the reserved id on Android', () async {
+      when(() => plugin.cancel(id: any(named: 'id'))).thenAnswer((_) async {});
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      await gateway.clearShieldStatus();
+      verify(() => plugin.cancel(id: 2)).called(1);
+    });
+
+    test('iOS: both are no-ops', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await gateway.showShieldStatus(until: DateTime.now().add(const Duration(minutes: 30)));
+      await gateway.clearShieldStatus();
+      verifyNever(
+        () => plugin.show(
+          id: any(named: 'id'),
+          title: any(named: 'title'),
+          body: any(named: 'body'),
+          notificationDetails: any(named: 'notificationDetails'),
+          payload: any(named: 'payload'),
+        ),
+      );
+      verifyNever(() => plugin.cancel(id: any(named: 'id')));
+    });
+  });
+
   group('response mapping', () {
+    test('end_shield works without a payload, id or with the reserved id', () {
+      final a = reminderActionFromResponse(_response('end_shield', null, nid: 2))!;
+      expect(a.kind, ReminderActionKind.endShield);
+      expect(a.types, isEmpty);
+      expect(a.notificationId, kShieldStatusNotificationId);
+      expect(reminderActionFromResponse(_response('end_shield', null))!.notificationId, kShieldStatusNotificationId);
+      // A plain tap on the Shield notification (no payload) is still ignored.
+      expect(reminderActionFromResponse(_response(null, null)), isNull);
+    });
+
     test('done / snooze / open / bad', () {
       final p = ReminderPayload.tryDecode(_payload())!;
       for (final (id, kind) in [

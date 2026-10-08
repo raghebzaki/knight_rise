@@ -6,6 +6,8 @@ import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.da
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/domain/entities/app_settings.dart';
+import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 
 import '../../helpers/fakes.dart';
@@ -136,6 +138,169 @@ void main() {
       final s = build(inputs(snoozes), now: at(cairo, 2026, 10, 5, 10, 45), location: cairo);
       expect(s.viewOf(RoutineType.stretch)!.canSnooze, isFalse);
       expect(s.viewOf(RoutineType.hydration)!.canSnooze, isTrue);
+    });
+  });
+
+  group('BuildCycleSnapshot with Shield and overrides', () {
+    const build = BuildCycleSnapshot(ReminderPlanner());
+    final now = at(cairo, 2026, 10, 5, 10);
+
+    CycleInputs inputs({
+      List<ShieldSession> shields = const [],
+      List<DayOverride> overrides = const [],
+      AppSettings settings = const AppSettings(),
+    }) => CycleInputs(
+      routines: Routine.defaults,
+      schedule: WorkSchedule.standard(),
+      todayEvents: const [],
+      settings: settings,
+      shields: shields,
+      overrides: overrides,
+    );
+
+    final active = ShieldSession(
+      id: 1,
+      startAt: at(cairo, 2026, 10, 5, 9, 30),
+      endAt: at(cairo, 2026, 10, 5, 10, 30),
+      reason: ShieldReason.focus,
+    );
+
+    test('active Shield: statuses are Shielded, activeShield is set, nextUp is the recovery', () {
+      final s = build(
+        inputs(shields: [active]),
+        now: now,
+        location: cairo,
+      );
+      expect(s.activeShield, active);
+      expect(s.routines.map((r) => r.status), everyElement(StatusShielded(at(cairo, 2026, 10, 5, 10, 30))));
+      expect(s.nextUp!.recovery, isTrue);
+      expect(s.nextUp!.fireAt, at(cairo, 2026, 10, 5, 10, 30));
+      expect(s.nextChangeAt, at(cairo, 2026, 10, 5, 10, 30));
+    });
+
+    test('active 25-min Shield with suppressed slots: nextRecovery is at the Shield end', () {
+      final focus = ShieldSession(
+        id: 2,
+        startAt: at(cairo, 2026, 10, 5, 9, 50),
+        endAt: at(cairo, 2026, 10, 5, 10, 15),
+        reason: ShieldReason.focus,
+      );
+      final s = build(
+        inputs(shields: [focus]),
+        now: now,
+        location: cairo,
+      );
+      expect(s.nextRecovery, isNotNull);
+      expect(s.nextRecovery!.recovery, isTrue);
+      expect(s.nextRecovery!.fireAt, at(cairo, 2026, 10, 5, 10, 15));
+    });
+
+    test('untilOff Shield ending at the work-window end: nextRecovery is null', () {
+      final untilOff = ShieldSession(
+        id: 3,
+        startAt: now,
+        endAt: at(cairo, 2026, 10, 5, 17),
+        reason: ShieldReason.untilOff,
+      );
+      final s = build(
+        inputs(shields: [untilOff]),
+        now: now,
+        location: cairo,
+      );
+      expect(s.activeShield, untilOff);
+      expect(s.nextRecovery, isNull);
+    });
+
+    test('shieldRecoverOnExit = false removes the recovery from the plan', () {
+      final s = build(
+        inputs(shields: [active], settings: const AppSettings(shieldRecoverOnExit: false)),
+        now: now,
+        location: cairo,
+      );
+      expect(s.nextUp!.recovery, isFalse);
+    });
+
+    test('ended or future sessions are not the active Shield', () {
+      final ended = active.copyWith(endedAt: at(cairo, 2026, 10, 5, 9, 50));
+      final future = active.copyWith(startAt: at(cairo, 2026, 10, 5, 11), endAt: at(cairo, 2026, 10, 5, 12));
+      final s = build(
+        inputs(shields: [ended, future]),
+        now: now,
+        location: cairo,
+      );
+      expect(s.activeShield, isNull);
+      expect(s.routines.map((r) => r.status), everyElement(isNot(isA<StatusShielded>())));
+    });
+
+    test('today day-off: off duty, todayOverride set, next work start is tomorrow', () {
+      final o = DayOverride(date: DateTime.utc(2026, 10, 5), kind: DayOverrideKind.off);
+      final s = build(
+        inputs(overrides: [o]),
+        now: now,
+        location: cairo,
+      );
+      expect(s.todayOverride, o);
+      expect(s.onDuty, isFalse);
+      expect(s.nextWorkStart, at(cairo, 2026, 10, 6, 9));
+      expect(s.routines.map((r) => r.status), everyElement(isA<StatusOffDuty>()));
+    });
+
+    test("tomorrow's override is not todayOverride and extend moves the window end", () {
+      final tomorrow = DayOverride(date: DateTime.utc(2026, 10, 6), kind: DayOverrideKind.off);
+      final late = DayOverride(date: DateTime.utc(2026, 10, 5), kind: DayOverrideKind.extend, extendMinutes: 60);
+      expect(
+        build(
+          inputs(overrides: [tomorrow]),
+          now: now,
+          location: cairo,
+        ).todayOverride,
+        isNull,
+      );
+      final s = build(
+        inputs(overrides: [late]),
+        now: at(cairo, 2026, 10, 5, 17, 50),
+        location: cairo,
+      );
+      expect(s.todayOverride, late);
+      expect(s.onDuty, isTrue);
+      expect(s.nextChangeAt, at(cairo, 2026, 10, 5, 18));
+    });
+  });
+
+  group('WatchCycleInputs', () {
+    test('combines routines, schedule, events, settings, shields and overrides', () async {
+      final shields = FakeShieldRepository();
+      final overrides = FakeDayOverrideRepository();
+      final dayStart = at(cairo, 2026, 10, 5);
+      final watch = WatchCycleInputs(
+        FakeRoutineRepository(),
+        FakeWorkScheduleRepository(),
+        FakeReminderEventRepository(),
+        FakeSettingsRepository(),
+        shields,
+        overrides,
+      );
+      final emissions = <CycleInputs>[];
+      final sub = watch(dayStart).listen(emissions.add);
+      await Future<void>.delayed(Duration.zero);
+      expect(emissions.single.shields, isEmpty);
+      expect(emissions.single.overrides, isEmpty);
+
+      await shields.add(
+        ShieldSession(
+          startAt: at(cairo, 2026, 10, 5, 10),
+          endAt: at(cairo, 2026, 10, 5, 11),
+          reason: ShieldReason.focus,
+        ),
+      );
+      await overrides.set(DayOverride(date: DateTime.utc(2026, 10, 4), kind: DayOverrideKind.off)); // before today
+      await overrides.set(DayOverride(date: DateTime.utc(2026, 10, 6), kind: DayOverrideKind.off));
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emissions.last.shields.single.id, 1);
+      expect(emissions.last.overrides.map((o) => o.date), [DateTime.utc(2026, 10, 6)]);
+      expect(emissions.last.routines, Routine.defaults);
     });
   });
 }

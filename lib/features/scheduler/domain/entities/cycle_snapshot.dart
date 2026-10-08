@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
+import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
 
 part 'cycle_snapshot.freezed.dart';
 
@@ -33,6 +35,15 @@ abstract class CycleSnapshot with _$CycleSnapshot {
     required DateTime nextChangeAt,
     PlannedReminder? nextUp,
     DateTime? nextWorkStart,
+
+    /// The Shield covering [computedAt], if any (latest started).
+    ShieldSession? activeShield,
+
+    /// Today's day-off / working-late override, if any.
+    DayOverride? todayOverride,
+
+    /// The first planned recovery ("Shield down") reminder, if the plan has one.
+    PlannedReminder? nextRecovery,
   }) = _CycleSnapshot;
 
   const CycleSnapshot._();

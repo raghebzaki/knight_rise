@@ -38,13 +38,17 @@ lib/
     time/        Local-day helpers, timezone loader
     utils/       Shared helpers (combine_latest)
   features/
-    cycle/       CycleBloc, home page, countdown widgets
-    gallery/     Widget gallery page
-    routines/    Routine entity, repository (domain + data)
-    scheduler/   ReminderPlanner, reminder events, cycle use cases
-    settings/    App settings, ThemeCubit
-    shield/      Shield window entity
-    work_hours/  Work schedule entity and repository
+    cycle/          CycleBloc, home page, break page, Shield section
+    device_health/  Permission/battery status, OEM guides (native channel)
+    diagnostics/    Debug screen: pending notifications, reconcile runs
+    gallery/        Widget gallery page
+    notifications/  NotificationGateway, channels, actions, payloads
+    onboarding/     Onboarding gate and four-step flow
+    routines/       Routine entity, repository, list and editor pages
+    scheduler/      ReminderPlanner, ReconcileSchedule, sync service, background tasks
+    settings/       App settings, ThemeCubit, settings hub
+    shield/         Shield sessions, use cases, cubit
+    work_hours/     Work schedule, day overrides, editor page
   l10n/          ARB sources and generated localizations
 ```
 
@@ -53,22 +57,27 @@ Features follow a domain / data / presentation split, and domain code stays free
 ## Testing
 
 ```bash
-flutter test
+flutter test      # unit, widget and gate suites (what CI runs)
+flutter analyze
 ```
 
-Current coverage:
+Suites:
 
-- `ReminderPlanner`: planning, status and next-change logic, notification ID determinism
-- Cycle use cases and `CycleBloc` state transitions
-- Drift database behavior
-- Theme construction (`KnightTheme`)
-- Home page widget test
+- Unit: `ReminderPlanner`, `ReconcileSchedule`, Shield and day-override use cases, Drift repositories and migrations, cubits and blocs
+- Widget: home, break, settings, work hours, routine editor, device health, onboarding, diagnostics
+- Gate (`test/gate/`): end-to-end scenarios below the UI with a real in-memory database and an OS-faithful notification simulator, asserting exact pending schedules for Shield start/extend/end, work-hours edits and day overrides
+
+On-device integration test (not run in CI). It compares the real OS pending notifications with the planner and exercises a Shield. Use a connected phone or emulator, grant notification permission, and run it during work hours (otherwise it skips):
+
+```bash
+flutter test integration_test/notification_schedule_test.dart -d <device>
+```
 
 ## Roadmap
 
 - Milestone 1, core theme and timer MVP: done
-- Milestone 2, background scheduling and interactive notifications: pending
-- Milestone 3, Shield Mode and settings customization: pending
+- Milestone 2, background scheduling and interactive notifications: done
+- Milestone 3, Shield Mode and settings customization: done
 - Milestone 4, Quest Log dashboard, history and polish: pending
 
 ## Fonts

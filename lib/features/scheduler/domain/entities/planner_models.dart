@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/shield/domain/entities/shield_window.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -22,6 +24,8 @@ class PlannerInput {
     required this.now,
     this.history = const {},
     this.shields = const [],
+    this.recoverOnExit = true,
+    this.overrides = const [],
   });
 
   final List<Routine> routines;
@@ -31,16 +35,34 @@ class PlannerInput {
   final Map<RoutineType, RoutineHistory> history;
   final List<ShieldWindow> shields;
 
+  /// Send one "Shield down" reminder when a Shield ends (settings).
+  final bool recoverOnExit;
+
+  /// Per-date work-hours overrides (day off / working late).
+  final List<DayOverride> overrides;
+
   RoutineHistory historyOf(RoutineType t) => history[t] ?? const RoutineHistory();
+
+  /// The override for the local calendar date [day] (date-only), if any.
+  DayOverride? overrideFor(DateTime day) {
+    final key = dateKey(day);
+    for (final o in overrides) {
+      if (dateKey(o.date) == key) return o;
+    }
+    return null;
+  }
 }
 
 /// One notification to fire. Routines due within the merge window share one.
 @immutable
 class PlannedReminder {
-  const PlannedReminder({required this.fireAt, required this.types});
+  const PlannedReminder({required this.fireAt, required this.types, this.recovery = false});
 
   final DateTime fireAt;
   final Set<RoutineType> types;
+
+  /// True for the "Shield down" summary: [types] are what the Shield held back.
+  final bool recovery;
 
   /// Deterministic, positive 31-bit id: same slot + routines → same id, so
   /// re-planning is idempotent (cancel what's gone, add what's new).
@@ -54,14 +76,15 @@ class PlannedReminder {
   bool operator ==(Object other) =>
       other is PlannedReminder &&
       other.fireAt.isAtSameMomentAs(fireAt) &&
+      other.recovery == recovery &&
       other.types.length == types.length &&
       other.types.containsAll(types);
 
   @override
-  int get hashCode => Object.hash(fireAt.millisecondsSinceEpoch, Object.hashAllUnordered(types));
+  int get hashCode => Object.hash(fireAt.millisecondsSinceEpoch, recovery, Object.hashAllUnordered(types));
 
   @override
-  String toString() => 'PlannedReminder($fireAt, ${types.map((t) => t.name).join('+')})';
+  String toString() => 'PlannedReminder($fireAt, ${types.map((t) => t.name).join('+')}${recovery ? ', recovery' : ''})';
 }
 
 /// A routine's status right now.
@@ -132,4 +155,17 @@ class StatusSnoozed extends RoutineStatus {
 
   @override
   int get hashCode => Object.hash(StatusSnoozed, until);
+}
+
+/// A Shield is active: reminders are held back until [until].
+@immutable
+class StatusShielded extends RoutineStatus {
+  const StatusShielded(this.until);
+  final DateTime until;
+
+  @override
+  bool operator ==(Object other) => other is StatusShielded && other.until == until;
+
+  @override
+  int get hashCode => Object.hash(StatusShielded, until);
 }

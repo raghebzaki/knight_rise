@@ -28,6 +28,24 @@ void main() {
     expect(s.timezoneId, isNull);
   });
 
+  test('fresh install seeds onboarding_completed = false and shield_recover_on_exit = true', () async {
+    final s = await DriftSettingsRepository(db).get();
+    expect(s.onboardingCompleted, isFalse);
+    expect(s.shieldRecoverOnExit, isTrue);
+    final row = await db.select(db.appSettingsTable).getSingle();
+    expect(row.onboardingCompleted, isFalse);
+    expect(row.shieldRecoverOnExit, isTrue);
+  });
+
+  test('onboardingCompleted and shieldRecoverOnExit round-trip', () async {
+    final settings = DriftSettingsRepository(db);
+    await settings.save((await settings.get()).copyWith(onboardingCompleted: true, shieldRecoverOnExit: false));
+    final s = await settings.get();
+    expect(s.onboardingCompleted, isTrue);
+    expect(s.shieldRecoverOnExit, isFalse);
+    expect(s.themeVariant, ThemeVariant.midnight);
+  });
+
   test('settings timezoneId round-trips and can be cleared', () async {
     final settings = DriftSettingsRepository(db);
     await settings.save((await settings.get()).copyWith(timezoneId: 'Africa/Cairo'));

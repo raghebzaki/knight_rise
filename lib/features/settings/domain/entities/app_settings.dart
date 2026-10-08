@@ -16,5 +16,11 @@ abstract class AppSettings with _$AppSettings {
 
     /// IANA zone id the schedule was last planned in; null before first check.
     String? timezoneId,
+
+    /// True once the onboarding flow has finished (or for upgraded installs).
+    @Default(false) bool onboardingCompleted,
+
+    /// Send a single "Shield down" summary reminder when a Shield ends.
+    @Default(true) bool shieldRecoverOnExit,
   }) = _AppSettings;
 }

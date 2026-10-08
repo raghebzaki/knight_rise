@@ -11,7 +11,11 @@ import 'package:knight_rise/features/scheduler/domain/repositories/reminder_even
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/settings/domain/entities/app_settings.dart';
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
+import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
+import 'package:knight_rise/features/shield/domain/repositories/shield_repository.dart';
+import 'package:knight_rise/features/work_hours/domain/entities/day_override.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
+import 'package:knight_rise/features/work_hours/domain/repositories/day_override_repository.dart';
 import 'package:knight_rise/features/work_hours/domain/repositories/work_schedule_repository.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -28,12 +32,20 @@ class CycleInputs {
     required this.schedule,
     required this.todayEvents,
     required this.settings,
+    this.shields = const [],
+    this.overrides = const [],
   });
 
   final List<Routine> routines;
   final WorkSchedule schedule;
   final List<ReminderEvent> todayEvents;
   final AppSettings settings;
+
+  /// Shield sessions that have not ended before the start of the local day.
+  final List<ShieldSession> shields;
+
+  /// Day overrides dated today or later.
+  final List<DayOverride> overrides;
 }
 
 /// Derives per-routine history (last completion, active snooze) from events.
@@ -54,19 +66,34 @@ Map<RoutineType, RoutineHistory> historyFromEvents(Iterable<ReminderEvent> event
 /// Streams [CycleInputs] for the local day starting at `dayStart`.
 @injectable
 class WatchCycleInputs {
-  const WatchCycleInputs(this._routines, this._schedule, this._events, this._settings);
+  const WatchCycleInputs(this._routines, this._schedule, this._events, this._settings, this._shields, this._overrides);
 
   final RoutineRepository _routines;
   final WorkScheduleRepository _schedule;
   final ReminderEventRepository _events;
   final SettingsRepository _settings;
+  final ShieldRepository _shields;
+  final DayOverrideRepository _overrides;
 
-  Stream<CycleInputs> call(DateTime dayStart) => combineLatest4(
-    _routines.watchAll(),
-    _schedule.watch(),
-    _events.watchSince(dayStart),
-    _settings.watch(),
-    (r, s, e, st) => CycleInputs(routines: r, schedule: s, todayEvents: e, settings: st),
+  /// `dayStart` is local midnight of the day to show; overrides are watched
+  /// from that date onwards so tomorrow's "day off" is already known.
+  Stream<CycleInputs> call(DateTime dayStart) => combineLatest<CycleInputs>(
+    [
+      _routines.watchAll(),
+      _schedule.watch(),
+      _events.watchSince(dayStart),
+      _settings.watch(),
+      _shields.watchSince(dayStart),
+      _overrides.watchFrom(dateOnly(dayStart)),
+    ],
+    (v) => CycleInputs(
+      routines: v[0]! as List<Routine>,
+      schedule: v[1]! as WorkSchedule,
+      todayEvents: v[2]! as List<ReminderEvent>,
+      settings: v[3]! as AppSettings,
+      shields: v[4]! as List<ShieldSession>,
+      overrides: v[5]! as List<DayOverride>,
+    ),
   );
 }
 
@@ -87,6 +114,9 @@ class BuildCycleSnapshot {
       location: location,
       now: now,
       history: history,
+      shields: [for (final s in inputs.shields) s.toWindow()],
+      recoverOnExit: inputs.settings.shieldRecoverOnExit,
+      overrides: inputs.overrides,
     );
     final plan = _planner.plan(input);
 
@@ -107,6 +137,9 @@ class BuildCycleSnapshot {
       onDuty: _planner.currentWindow(input) != null,
       nextUp: plan.firstOrNull,
       nextWorkStart: _planner.nextWorkStart(input),
+      activeShield: inputs.shields.where((s) => s.isActiveAt(now)).lastOrNull,
+      todayOverride: input.overrideFor(localDateOf(now, location)),
+      nextRecovery: plan.where((p) => p.recovery).firstOrNull,
       waterMlToday: today.fold<int>(0, (sum, e) => sum + (e.waterMl ?? 0)),
       waterTargetMl: (hydration?.dailyTarget ?? 8) * inputs.settings.waterPerTapMl,
       nextChangeAt: _planner.nextChangeAt(input, plan: plan),

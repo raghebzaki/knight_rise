@@ -24,4 +24,20 @@ void main() {
     expect(NotificationCopy.channelFor({RoutineType.eyeRest}), 'eye_rest');
     expect(NotificationCopy.channelFor(RoutineType.values.toSet()), 'hydration');
   });
+
+  test('recovery copy: "Shield down" + labels joined by " + "', () {
+    final one = NotificationCopy.build({RoutineType.hydration}, recovery: true);
+    expect((one.title, one.body), ('Shield down', 'Waiting: Hydration'));
+    final many = NotificationCopy.build({
+      RoutineType.eyeRest,
+      RoutineType.hydration,
+      RoutineType.stretch,
+    }, recovery: true);
+    expect(many.title, 'Shield down');
+    expect(many.body, 'Waiting: Hydration + Quick stretch + Eye rest');
+  });
+
+  test('recovery does not change the channel choice', () {
+    expect(NotificationCopy.channelFor({RoutineType.eyeRest, RoutineType.stretch}), 'stretch');
+  });
 }

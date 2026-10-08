@@ -343,13 +343,26 @@ Each diamond is a gate: the next milestone starts only once its criterion passes
 
 ### Milestone 3 — Shield Mode & settings customization
 
-- [ ] Shield presets, ongoing Android notification, "Recover on exit" summary.
-- [ ] Work hours editor: per-day windows, split shifts, copy-to-weekdays, today overrides.
-- [ ] Routine settings: interval, target, rolling vs fixed, sound, vibration.
-- [ ] Device health screen: permission status, battery-optimization and OEM guides.
-- [ ] Onboarding flow with permission priming.
+- [x] Shield presets, ongoing Android notification, "Recover on exit" summary.
+- [x] Work hours editor: per-day windows, split shifts, copy-to-weekdays, today overrides.
+- [x] Routine settings: interval, target, rolling vs fixed, sound, vibration.
+- [x] Device health screen: permission status, battery-optimization and OEM guides.
+- [x] Onboarding flow with permission priming.
 
 **Exit:** Shield start/end/extend, mid-reminder activation, and work-hours edits produce exactly the expected pending notifications (verified by an integration test that inspects the pending list).
+
+### Milestone 3 implementation notes
+
+- Schema v3 adds `shield_sessions`, `day_overrides` and `app_settings.onboarding_completed` (set to true on upgrade so existing installs skip onboarding) and `shield_recover_on_exit` (default true). Migration tests cover v1 -> v2 -> v3 with schema dumps.
+- Shield rules: presets 25 min, 50 min, custom and "until I turn it off". Until-off ends at the end of the current work window and is unavailable off duty. Status precedence: Shielded wins over Due/Snoozed/Active. The recovery is one reminder at the Shield end that lists only the routines that had a slot suppressed inside the Shield; it is pre-scheduled with the OS (it fires with the app closed), omitted when it would fall outside work hours, and moved to end + 1 min after an early end. Overlapping or touching Shields are merged into one window.
+- Day overrides: "Day off today", and "Working late" in steps up to +4 h in total, capped at midnight; clearing returns to the stored schedule.
+- Android ongoing Shield notification (id 2) is driven by every reconcile (shown while a Shield is active, cleared otherwise); "End Shield" runs `HandleReminderAction`, which ends the session and reconciles from the background isolate. The sync service also watches shields, day overrides and `shieldRecoverOnExit` and reconciles as a config change.
+- Settings hub with work-hours editor (per-day windows, split shifts, copy-to-weekdays, today overrides) and routine editors (interval, target, rolling vs fixed). "Sound & vibration" opens the system channel settings, because on Android 8+ the channel owns sound and vibration.
+- Device health: native channel `knight_rise/device_health`, per-OEM guides, severity rules (notifications off = error; exact alarms missing with Precision Timing on = warning; battery optimization active = warning on aggressive OEMs, otherwise info; iOS background refresh denied = warning). The Home chip counts warnings and errors only, and never notification permission (it has its own "Enable reminders" card).
+- "Reminders were paused" heuristic: on launch or resume, if a previous reconcile run exists within 24 h and the run had to re-add everything it planned, the sync service emits a paused signal for the banner.
+- Onboarding: a gate redirects to `/onboarding` until `onboarding_completed`; four steps (welcome, routines, work hours, oath/permission priming).
+- Fixed (was a known gap found by the gate suite): slots merged into a notification (within the 5 min merge window) used to be re-planned on their own after that notification was delivered without an action, adding a duplicate nudge minutes later. `ReminderPlanner.plan()` now forms merge clusters over the whole local day (from the local midnight of `now`, independent of `now`) and only then drops clusters whose fire time has passed, together with their absorbed members. Cluster ids therefore stay stable across reconciles. Covered by gate test `19a` and the planner unit tests.
+- Gate tests: `test/gate/m3_gate_test.dart` runs the real use cases, Drift repositories, `ReconcileSchedule` and `ReminderPlanner` against an in-memory database and `OsNotificationSimulator` (`test/gate/os_simulator.dart`, an OS-faithful `NotificationGateway`) with exact expected pending lists. It runs in CI with `flutter test`. `integration_test/notification_schedule_test.dart` checks the same equality against the real plugin on a device (`flutter test integration_test/notification_schedule_test.dart -d <device>`); it is not run in CI.
 
 ### Milestone 4 — Dashboard, persistence, polish
 

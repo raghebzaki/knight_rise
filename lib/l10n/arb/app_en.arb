@@ -5,10 +5,30 @@
   "nextUp": "Next up",
   "offDuty": "Off duty",
   "offDutyNext": "Back on duty {when}",
-  "@offDutyNext": { "placeholders": { "when": { "type": "String" } } },
+  "@offDutyNext": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "dueNow": "Due now",
   "snoozedUntil": "Snoozed until {time}",
-  "@snoozedUntil": { "placeholders": { "time": { "type": "String" } } },
+  "@snoozedUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shieldedUntil": "Shielded until {time}",
+  "@shieldedUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "done": "Done",
   "claimBreak": "Claim break",
   "snooze10": "Snooze 10m",
@@ -17,9 +37,24 @@
   "routineStretch": "Quick stretch",
   "routineEyeRest": "Eye rest",
   "waterToday": "{ml} ml today",
-  "@waterToday": { "placeholders": { "ml": { "type": "int" } } },
+  "@waterToday": {
+    "placeholders": {
+      "ml": {
+        "type": "int"
+      }
+    }
+  },
   "progressOf": "{done} / {target}",
-  "@progressOf": { "placeholders": { "done": { "type": "int" }, "target": { "type": "int" } } },
+  "@progressOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "themeMidnight": "Midnight",
   "themeAmoled": "AMOLED",
   "gallery": "Widget gallery",
@@ -31,6 +66,15 @@
   "notifEyeRestTitle": "Rest your eyes.",
   "notifEyeRestBody": "Look 20 ft away for 20 seconds.",
   "notifMergedTitle": "Knight's call",
+  "notifRecoveryTitle": "Shield down",
+  "notifRecoveryBody": "Waiting: {labels}",
+  "@notifRecoveryBody": {
+    "placeholders": {
+      "labels": {
+        "type": "String"
+      }
+    }
+  },
   "notifChannelHydrationDescription": "Hydration reminders",
   "notifChannelStretchDescription": "Quick stretch reminders",
   "notifChannelEyeRestDescription": "Eye rest reminders",
@@ -40,7 +84,13 @@
   "eyeRestInstruction": "Look 20 ft away",
   "eyeRestHint": "Rest your eyes on something far away until the ring fills.",
   "eyeRestSecondsLeft": "{seconds} seconds left",
-  "@eyeRestSecondsLeft": { "placeholders": { "seconds": { "type": "int" } } },
+  "@eyeRestSecondsLeft": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "start": "Start",
   "stretchInstruction": "Stand up and move",
   "stretchHint": "Two minutes. Tick each move as you go.",
@@ -55,14 +105,318 @@
   "hydrationInstruction": "Drink some water",
   "hydrationHint": "How much did you drink?",
   "mlAmount": "{ml} ml",
-  "@mlAmount": { "placeholders": { "ml": { "type": "int" } } },
+  "@mlAmount": {
+    "placeholders": {
+      "ml": {
+        "type": "int"
+      }
+    }
+  },
   "logWater": "Log water",
   "questUpdated": "Quest updated",
   "breakStepOf": "Step {current} of {total}",
-  "@breakStepOf": { "placeholders": { "current": { "type": "int" }, "total": { "type": "int" } } },
+  "@breakStepOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "notifPermissionTitle": "Enable reminders",
   "notifPermissionBody": "Knight Rise needs notifications to call you to your breaks.",
   "notifPermissionBodyDenied": "Notifications are off. Turn them on in system settings.",
   "enable": "Enable",
-  "notNow": "Not now"
+  "notNow": "Not now",
+  "settingsTitle": "Settings",
+  "shieldNotifTitle": "Shield active",
+  "shieldNotifBody": "Reminders paused until {time}",
+  "@shieldNotifBody": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shieldNotifEnd": "End Shield",
+  "shieldButton": "Shield",
+  "shieldSheetTitle": "Pause reminders",
+  "shieldPresetFocus": "Focus 25 min",
+  "shieldPresetMeeting": "Meeting 50 min",
+  "shieldPresetUntilOff": "Until I turn it off",
+  "shieldPresetCustom": "Custom…",
+  "shieldCustomTitle": "Custom Shield",
+  "shieldCustomMinutes": "{minutes} min",
+  "@shieldCustomMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "shieldCustomStart": "Start",
+  "shieldActive": "Shield active",
+  "shieldRecoveryAt": "Recovery ping at {time}",
+  "@shieldRecoveryAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "shieldExtend": "+15 min",
+  "shieldEnd": "End",
+  "shieldUnavailable": "Shield is only available during work hours",
+  "overrideDayOff": "Day off today",
+  "overrideWorkLateAdd": "Working late +1h",
+  "overrideWorkLate": "Working late {amount}",
+  "@overrideWorkLate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overrideDayOffTitle": "Take the day off?",
+  "overrideDayOffBody": "Reminders stay silent for the rest of today.",
+  "overrideCancel": "Cancel",
+  "overrideClear": "Clear",
+  "settingsAppearance": "Appearance",
+  "settingsTheme": "Theme",
+  "settingsPlanSection": "Plan",
+  "settingsRoutines": "Routines",
+  "settingsRoutinesSummary": "{enabled} of {total} active",
+  "@settingsRoutinesSummary": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsWorkHours": "Work hours",
+  "settingsWorkHoursCustom": "Custom",
+  "settingsWorkHoursNone": "No work days",
+  "settingsShield": "Shield",
+  "settingsRecoverTitle": "Recovery ping after Shield",
+  "settingsRecoverSubtitle": "One summary reminder when a Shield ends.",
+  "settingsSystemSection": "System",
+  "settingsDeviceHealth": "Device health",
+  "settingsComingSoon": "Coming soon",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "workHoursTitle": "Work hours",
+  "workHoursSave": "Save",
+  "workHoursPresets": "Presets",
+  "workHoursPresetSunThu": "Sun–Thu 09–17",
+  "workHoursPresetMonFri": "Mon–Fri 09–17",
+  "workHoursPresetCustom": "Custom",
+  "workHoursCopySunday": "Copy Sunday to work days",
+  "workHoursAddWindow": "Add window",
+  "workHoursDeleteWindow": "Delete window",
+  "workHoursDayOff": "Day off",
+  "workHoursNoWindows": "No time windows",
+  "workHoursEndAfterStart": "End time must be after the start.",
+  "workHoursIssueTooShort": "Windows must be at least {minutes} minutes long.",
+  "@workHoursIssueTooShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "workHoursIssueOverlap": "Windows overlap.",
+  "workHoursIssueTooMany": "At most {max} windows per day.",
+  "@workHoursIssueTooMany": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "workHoursPickStart": "Start time",
+  "workHoursPickEnd": "End time",
+  "workHoursDiscardTitle": "Discard changes?",
+  "workHoursDiscardBody": "Your unsaved changes will be lost.",
+  "workHoursDiscard": "Discard",
+  "workHoursKeepEditing": "Keep editing",
+  "routineEditorListTitle": "Routines",
+  "routineEditorSummary": "Every {minutes} min · {count}/day",
+  "@routineEditorSummary": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routineEditorOff": "Off",
+  "routineEditorEnabled": "Enabled",
+  "routineEditorInterval": "Interval",
+  "routineEditorIntervalValue": "Every {minutes} min",
+  "@routineEditorIntervalValue": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "routineEditorTarget": "Daily target",
+  "routineEditorTargetValue": "{count} per day",
+  "@routineEditorTargetValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routineEditorHydrationTotal": "×{perTap} ml = {total} ml",
+  "@routineEditorHydrationTotal": {
+    "placeholders": {
+      "perTap": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "routineEditorDecrease": "Decrease",
+  "routineEditorIncrease": "Increase",
+  "routineEditorMode": "Schedule mode",
+  "routineEditorRolling": "Rolling",
+  "routineEditorFixed": "Fixed grid",
+  "routineEditorRollingHelp": "The next reminder comes one interval after you complete one.",
+  "routineEditorFixedHelp": "Reminders stay on a fixed grid from the start of your work hours.",
+  "routineEditorSound": "Sound & vibration",
+  "routineEditorSoundHelp": "Opens the system settings for this reminder channel.",
+  "routineEditorSave": "Save",
+  "routineEditorDiscardTitle": "Discard changes?",
+  "routineEditorDiscardBody": "Your unsaved changes will be lost.",
+  "routineEditorDiscard": "Discard",
+  "routineEditorKeepEditing": "Keep editing",
+  "healthTitle": "Device health",
+  "healthFix": "Fix",
+  "healthNotificationsTitle": "Notifications",
+  "healthNotificationsOn": "Allowed",
+  "healthNotificationsOff": "Blocked: reminders cannot appear",
+  "healthPrecisionTitle": "Precision Timing",
+  "healthPrecisionHelp": "Fire reminders on the exact minute. Uses more battery.",
+  "healthPrecisionNeeded": "Needs the Alarms & reminders permission",
+  "healthBatteryTitle": "Battery optimization",
+  "healthBatteryOk": "Unrestricted",
+  "healthBatteryOptimized": "Optimized: the system may delay reminders",
+  "healthBatteryUnknown": "Unknown",
+  "healthRefreshTitle": "Background App Refresh",
+  "healthRefreshOn": "On",
+  "healthRefreshDenied": "Off: your schedule may not be topped up",
+  "healthRefreshRestricted": "Restricted by the system",
+  "healthAllGood": "All good",
+  "healthIssues": "{count, plural, =1{1 issue} other{{count} issues}}",
+  "@healthIssues": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "healthCheckChip": "Check device health",
+  "healthOpenSettings": "Open settings",
+  "healthMore": "More: dontkillmyapp.com",
+  "healthOemIntro": "Some phones stop background apps. Follow these steps to keep reminders on time.",
+  "healthOemXiaomiTitle": "Xiaomi / Redmi / POCO",
+  "healthOemXiaomiStep1": "Open Settings, then Apps, Manage apps, Knight Rise.",
+  "healthOemXiaomiStep2": "Turn on Autostart.",
+  "healthOemXiaomiStep3": "Open Battery saver and choose No restrictions.",
+  "healthOemSamsungTitle": "Samsung",
+  "healthOemSamsungStep1": "Open Settings, then Battery, Background usage limits.",
+  "healthOemSamsungStep2": "Open Never sleeping apps and add Knight Rise.",
+  "healthOemSamsungStep3": "In App info, Battery, choose Unrestricted.",
+  "healthOemHuaweiTitle": "Huawei / Honor",
+  "healthOemHuaweiStep1": "Open Settings, then Apps, App launch.",
+  "healthOemHuaweiStep2": "Find Knight Rise and switch it to Manage manually.",
+  "healthOemHuaweiStep3": "Allow Auto-launch, Secondary launch and Run in background.",
+  "healthOemOppoTitle": "Oppo / Realme / OnePlus",
+  "healthOemOppoStep1": "Open Settings, then Apps, App management, Knight Rise.",
+  "healthOemOppoStep2": "Turn on Allow auto-launch.",
+  "healthOemOppoStep3": "Open Battery usage and turn battery optimization off (allow background activity).",
+  "healthOemVivoTitle": "Vivo / iQOO",
+  "healthOemVivoStep1": "Open Settings, then Battery, Background power consumption management.",
+  "healthOemVivoStep2": "Find Knight Rise and allow high background power consumption.",
+  "healthOemVivoStep3": "Also allow Autostart for Knight Rise under Settings, Apps.",
+  "healthOemGenericTitle": "Android battery settings",
+  "healthOemGenericStep1": "Open Settings, then Apps, Knight Rise, Battery.",
+  "healthOemGenericStep2": "Choose Unrestricted (or turn battery optimization off).",
+  "healthOemGenericStep3": "If your phone has an auto-start or app-launch list, allow Knight Rise there.",
+  "pausedBannerTitle": "Reminders were paused — re-armed now.",
+  "pausedBannerAction": "Device health",
+  "pausedDismiss": "Dismiss",
+  "onboardingStepLabel": "Step {current} of {total}",
+  "@onboardingStepLabel": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingWelcomeTitle": "KNIGHT RISE",
+  "onboardingWelcomeOath": "Every hour, a knight rises: water, stretch, rest your eyes.",
+  "onboardingWelcomeBody": "Short, gentle reminders that keep you healthy through the workday. Setting up your quest takes under a minute.",
+  "onboardingBegin": "Begin",
+  "onboardingNext": "Next",
+  "onboardingBack": "Back",
+  "onboardingRoutinesTitle": "Your routines",
+  "onboardingRoutinesSubtitle": "Choose what to be reminded about, and how often.",
+  "onboardingRoutinesHint": "Keep at least one routine on to continue.",
+  "onboardingIntervalChip": "{minutes} min",
+  "@onboardingIntervalChip": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingHoursTitle": "Your work hours",
+  "onboardingHoursSubtitle": "Reminders only arrive while you are on duty.",
+  "onboardingPresetSunThu": "Sun–Thu",
+  "onboardingPresetMonFri": "Mon–Fri",
+  "onboardingPresetCustom": "Custom days",
+  "onboardingStartTime": "Start",
+  "onboardingEndTime": "End",
+  "onboardingNoDays": "Pick at least one work day.",
+  "onboardingEndAfterStart": "End time must be after the start.",
+  "onboardingTooShort": "Work hours must be at least {minutes} minutes long.",
+  "@onboardingTooShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingSplitShifts": "Need split shifts? You can fine-tune later in Settings.",
+  "onboardingOathTitle": "Take the Oath",
+  "onboardingOathBody": "Knight Rise nudges you with a notification when a break is due. Allow notifications so reminders can reach you. You can change this at any time.",
+  "onboardingEnableReminders": "Enable reminders",
+  "onboardingRemindersEnabled": "Reminders enabled",
+  "onboardingRemindersBlocked": "Notifications are blocked. You can turn them on in your phone's system settings.",
+  "onboardingBatteryNote": "Some phones stop reminders to save battery — check Settings › Device health after setup.",
+  "onboardingTakeOath": "Take the Oath",
+  "onboardingFinishFailed": "Could not save your setup. Please try again."
 }

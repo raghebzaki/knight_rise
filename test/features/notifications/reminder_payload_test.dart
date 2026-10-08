@@ -49,4 +49,30 @@ void main() {
     final p = ReminderPayload.tryDecode('{"v":1,"t":["nope","stretch"],"at":1000}');
     expect(p!.types, {RoutineType.stretch});
   });
+
+  group('recovery flag', () {
+    test('is encoded as "r":1 and omitted when false', () {
+      final plain = ReminderPayload(types: const {RoutineType.hydration}, fireAt: at);
+      expect(jsonDecode(plain.encode()), isNot(contains('r')));
+      final rec = ReminderPayload(types: const {RoutineType.hydration}, fireAt: at, recovery: true);
+      expect(jsonDecode(rec.encode()), containsPair('r', 1));
+    });
+
+    test('round-trips and of() copies it from a PlannedReminder', () {
+      final p = ReminderPayload.of(PlannedReminder(fireAt: at, types: const {RoutineType.stretch}, recovery: true));
+      expect(p.recovery, isTrue);
+      final back = ReminderPayload.tryDecode(p.encode());
+      expect(back, p);
+      expect(back!.recovery, isTrue);
+      expect(back, isNot(ReminderPayload(types: const {RoutineType.stretch}, fireAt: at)));
+    });
+
+    test('tryDecode is tolerant: missing, zero or junk "r" means false', () {
+      for (final r in ['', ',"r":0', ',"r":"1"', ',"r":null', ',"r":true', ',"r":2']) {
+        final p = ReminderPayload.tryDecode('{"v":1,"t":["hydration"],"at":1000$r}');
+        expect(p, isNotNull, reason: r);
+        expect(p!.recovery, isFalse, reason: r);
+      }
+    });
+  });
 }

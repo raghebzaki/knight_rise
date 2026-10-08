@@ -4,6 +4,7 @@ import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
+import 'package:intl/intl.dart';
 import 'package:knight_rise/core/config/background_ids.dart';
 import 'package:knight_rise/features/notifications/data/background_entry.dart';
 import 'package:knight_rise/features/notifications/data/notification_content.dart';
@@ -123,7 +124,7 @@ class LocalNotificationGateway implements NotificationGateway {
 
   Future<void> _scheduleWithId(int id, PlannedReminder reminder, {required bool exact}) async {
     final l = _l10n;
-    final content = NotificationCopy.build(reminder.types, l10n: l);
+    final content = NotificationCopy.build(reminder.types, recovery: reminder.recovery, l10n: l);
     final channelId = NotificationCopy.channelFor(reminder.types);
     final primary = NotificationCopy.sortedTypes(reminder.types).first;
     await _pluginZonedSchedule(
@@ -177,6 +178,50 @@ class LocalNotificationGateway implements NotificationGateway {
   );
 
   @override
+  Future<void> showShieldStatus({required DateTime until}) async {
+    // Android only; on iOS the status lives in the app.
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    final remaining = until.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      await clearShieldStatus();
+      return;
+    }
+    final l = _l10n;
+    final untilText = DateFormat.Hm().format(tz.TZDateTime.from(until, _location));
+    await _plugin.show(
+      id: kShieldStatusNotificationId,
+      title: l.shieldNotifTitle,
+      body: l.shieldNotifBody(untilText),
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          NotificationChannelIds.system,
+          l.notifChannelSystemName,
+          channelDescription: l.notifChannelSystemDescription,
+          importance: Importance.low,
+          priority: Priority.low,
+          category: AndroidNotificationCategory.status,
+          color: _brandCyan,
+          ongoing: true,
+          autoCancel: false,
+          onlyAlertOnce: true,
+          when: until.millisecondsSinceEpoch,
+          usesChronometer: true,
+          chronometerCountDown: true,
+          // Safety net: the status disappears at the end even if no reconcile runs.
+          timeoutAfter: remaining.inMilliseconds,
+          actions: [AndroidNotificationAction(NotificationActionIds.endShield, l.shieldNotifEnd)],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<void> clearShieldStatus() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    await _plugin.cancel(id: kShieldStatusNotificationId);
+  }
+
+  @override
   Future<void> cancel(int id) => _plugin.cancel(id: id);
 
   @override
@@ -226,6 +271,11 @@ class LocalNotificationGateway implements NotificationGateway {
 
   @override
   Future<bool> canScheduleExact() async => await _android?.canScheduleExactNotifications() ?? true;
+
+  @override
+  Future<void> requestExactAlarmPermission() async {
+    await _android?.requestExactAlarmsPermission();
+  }
 
   @override
   Future<ReminderAction?> launchAction() async {

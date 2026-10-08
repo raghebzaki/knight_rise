@@ -10,6 +10,10 @@ const int kReservedNotificationIdLimit = 1000;
 /// Id used by [NotificationGateway.scheduleTest].
 const int kTestNotificationId = 1;
 
+/// Id of the ongoing Shield status notification (Android). Reserved range, so
+/// the reconciler's diff path never cancels it as "stale".
+const int kShieldStatusNotificationId = 2;
+
 /// Port to the OS notification scheduler.
 abstract interface class NotificationGateway {
   /// Channels, iOS categories, foreground tap/action callback. Idempotent.
@@ -36,6 +40,14 @@ abstract interface class NotificationGateway {
   /// inexact timing (dev diagnostics). Replaces any earlier test notification.
   Future<void> scheduleTest({required DateTime at});
 
+  /// Shows (or refreshes) the ongoing "Shield active" status notification under
+  /// [kShieldStatusNotificationId], counting down to [until]. It also expires
+  /// by itself at [until]. No-op on iOS (status lives in the app).
+  Future<void> showShieldStatus({required DateTime until});
+
+  /// Removes the Shield status notification. No-op when none is shown / on iOS.
+  Future<void> clearShieldStatus();
+
   /// Android 13+/iOS permission prompt. Returns granted.
   Future<bool> requestPermission();
 
@@ -46,6 +58,11 @@ abstract interface class NotificationGateway {
 
   /// Whether exact alarms are currently allowed (Android 12+); true on iOS.
   Future<bool> canScheduleExact();
+
+  /// Android 12+: opens the system "Alarms & reminders" screen so the user can
+  /// allow exact alarms. No-op elsewhere. The result is read via
+  /// [canScheduleExact] once the user returns.
+  Future<void> requestExactAlarmPermission();
 
   /// Action that launched the app from a notification tap, if any.
   Future<ReminderAction?> launchAction();

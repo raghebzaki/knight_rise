@@ -17,6 +17,8 @@ void main() {
   late FakeWorkScheduleRepository work;
   late FakeSettingsRepository settings;
   late FakeReminderEventRepository events;
+  late FakeShieldRepository shields;
+  late FakeDayOverrideRepository overrides;
   late FakeReconcileRunRepository runs;
   late FakeNotificationGateway gateway;
   late FakeLocationProvider location;
@@ -28,6 +30,8 @@ void main() {
     work = FakeWorkScheduleRepository();
     settings = FakeSettingsRepository();
     events = FakeReminderEventRepository();
+    shields = FakeShieldRepository();
+    overrides = FakeDayOverrideRepository();
     runs = FakeReconcileRunRepository();
     gateway = FakeNotificationGateway();
     location = FakeLocationProvider(cairo);
@@ -38,6 +42,8 @@ void main() {
       work,
       settings,
       events,
+      shields,
+      overrides,
       runs,
       gateway,
       const ReminderPlanner(),

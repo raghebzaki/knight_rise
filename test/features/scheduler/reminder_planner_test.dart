@@ -22,6 +22,7 @@ PlannerInput input({
   tz.Location? location,
   Map<RoutineType, RoutineHistory> history = const {},
   List<ShieldWindow> shields = const [],
+  bool recoverOnExit = true,
 }) => PlannerInput(
   routines: routines,
   schedule: schedule ?? WorkSchedule.standard(),
@@ -29,6 +30,7 @@ PlannerInput input({
   now: now,
   history: history,
   shields: shields,
+  recoverOnExit: recoverOnExit,
 );
 
 List<String> hm(List<PlannedReminder> plan, tz.Location l) => [
@@ -122,6 +124,34 @@ void main() {
       expect(plan[2].types, {RoutineType.eyeRest, RoutineType.stretch});
     });
 
+    final all3 = [hydration, stretch, eyeRest];
+
+    test('merged cluster still planned before it fires (09:39)', () {
+      final plan = planner.plan(input(now: at(cairo, 2026, 10, 5, 9, 39), routines: all3));
+      expect(hm(plan, cairo).take(2), ['5 09:40', '5 10:00']);
+      expect(plan[0].types, {RoutineType.eyeRest, RoutineType.hydration});
+    });
+
+    test('absorbed slot is not re-planned alone once the merged notification fired (09:41)', () {
+      final plan = planner.plan(input(now: at(cairo, 2026, 10, 5, 9, 41), routines: all3));
+      expect(hm(plan, cairo).take(4), ['5 10:00', '5 10:20', '5 10:30', '5 10:40']);
+      expect(hm(plan, cairo), isNot(contains('5 09:45')));
+      expect(plan[0].types, {RoutineType.eyeRest, RoutineType.stretch});
+      expect(plan[2].types, {RoutineType.hydration});
+    });
+
+    test('Done for hydration at 09:41 legitimately re-anchors rolling hydration to 10:26', () {
+      final plan = planner.plan(
+        input(
+          now: at(cairo, 2026, 10, 5, 9, 41),
+          routines: all3,
+          history: {RoutineType.hydration: RoutineHistory(lastDoneAt: at(cairo, 2026, 10, 5, 9, 41))},
+        ),
+      );
+      expect(hm(plan, cairo).take(4), ['5 10:00', '5 10:20', '5 10:26', '5 10:40']);
+      expect(plan[2].types, {RoutineType.hydration});
+    });
+
     test('respects maxCount and the horizon', () {
       final every = WorkSchedule(
         days: {
@@ -143,6 +173,7 @@ void main() {
         input(
           now: at(cairo, 2026, 10, 5, 9),
           shields: [ShieldWindow(start: at(cairo, 2026, 10, 5, 9, 30), end: at(cairo, 2026, 10, 5, 11))],
+          recoverOnExit: false,
         ),
       );
       expect(hm(plan, cairo).first, '5 11:15');

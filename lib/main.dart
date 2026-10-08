@@ -10,6 +10,7 @@ import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/router/break_location.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
+import 'package:knight_rise/features/onboarding/presentation/onboarding_gate.dart';
 import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/handle_reminder_action.dart';
 
@@ -19,6 +20,8 @@ Future<void> main() async {
   // Must precede KnightRiseApp: its sync service reconciles on launch.
   await getIt<NotificationGateway>().initialize(onForegroundAction: _onForegroundAction);
   unawaited(getIt<BackgroundScheduler>().register());
+  // The router redirects on it, so it must be known before the first frame.
+  await getIt<OnboardingGate>().load();
   if (Flavor.current.isDev && kDebugMode) Bloc.observer = const _LogObserver();
   runApp(const KnightRiseApp());
   // Cold start from a notification tap: the plugin reports it as launch

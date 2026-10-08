@@ -12,6 +12,8 @@ import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.
 import 'package:knight_rise/features/scheduler/domain/services/schedule_reconciler.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
+import 'package:knight_rise/features/shield/domain/repositories/shield_repository.dart';
+import 'package:knight_rise/features/work_hours/domain/repositories/day_override_repository.dart';
 import 'package:knight_rise/features/work_hours/domain/repositories/work_schedule_repository.dart';
 
 /// Triggers whose reason may have invalidated every pending notification
@@ -46,6 +48,8 @@ class ReconcileSchedule implements ScheduleReconciler {
     this._workSchedule,
     this._settings,
     this._events,
+    this._shields,
+    this._overrides,
     this._runs,
     this._gateway,
     this._planner,
@@ -57,6 +61,8 @@ class ReconcileSchedule implements ScheduleReconciler {
   final WorkScheduleRepository _workSchedule;
   final SettingsRepository _settings;
   final ReminderEventRepository _events;
+  final ShieldRepository _shields;
+  final DayOverrideRepository _overrides;
   final ReconcileRunRepository _runs;
   final NotificationGateway _gateway;
   final ReminderPlanner _planner;
@@ -75,7 +81,10 @@ class ReconcileSchedule implements ScheduleReconciler {
       final routines = await _routines.getAll();
       final schedule = await _workSchedule.get();
       final settings = await _settings.get();
-      final today = await _events.getSince(startOfLocalDay(now, location));
+      final dayStart = startOfLocalDay(now, location);
+      final today = await _events.getSince(dayStart);
+      final shields = await _shields.getSince(dayStart);
+      final overrides = await _overrides.getFrom(localDateOf(now, location));
 
       final plan = _planner.plan(
         PlannerInput(
@@ -84,7 +93,9 @@ class ReconcileSchedule implements ScheduleReconciler {
           location: location,
           now: now,
           history: historyFromEvents(today),
-          // Shield windows arrive in Milestone 3 (shields default to none).
+          shields: [for (final s in shields) s.toWindow()],
+          recoverOnExit: settings.shieldRecoverOnExit,
+          overrides: overrides,
         ),
       );
       planned = plan.length;
@@ -116,6 +127,8 @@ class ReconcileSchedule implements ScheduleReconciler {
       error = e.toString();
     }
 
+    await _syncShieldStatus(now);
+
     final run = ReconcileRun(
       at: now,
       trigger: trigger,
@@ -131,5 +144,22 @@ class ReconcileSchedule implements ScheduleReconciler {
       // Audit-log failures must not break the reconcile contract.
     }
     return run;
+  }
+
+  /// Keeps the ongoing Shield status notification consistent with the stored
+  /// Shield, on every trigger and in every isolate. Deliberately outside the
+  /// plan's try block and never throws: a status-notification failure must not
+  /// fail (or be recorded as an error of) an otherwise good reconcile.
+  Future<void> _syncShieldStatus(DateTime now) async {
+    try {
+      final active = await _shields.active(now);
+      if (active != null) {
+        await _gateway.showShieldStatus(until: active.effectiveEnd);
+      } else {
+        await _gateway.clearShieldStatus();
+      }
+    } on Object {
+      // Best effort; the next reconcile retries.
+    }
   }
 }

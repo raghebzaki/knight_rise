@@ -7,6 +7,7 @@ import 'package:knight_rise/core/database/app_database.dart';
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -140,4 +141,167 @@ void main() {
       },
     );
   });
+  test('migration from v2 to v3 keeps data, marks onboarding done, adds shield + override tables', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch
+          ..insertAll(oldDb.routines, [
+            const v2.RoutinesData(
+              type: 'eyeRest',
+              intervalMinutes: 25,
+              dailyTarget: 10,
+              enabled: 1,
+              mode: 'rolling',
+            ),
+          ])
+          ..insertAll(oldDb.workWindows, [
+            const v2.WorkWindowsData(
+              id: 1,
+              weekday: 1,
+              startMinute: 600,
+              endMinute: 900,
+            ),
+          ])
+          ..insertAll(oldDb.appSettings, [
+            const v2.AppSettingsData(
+              id: 1,
+              themeVariant: 'amoled',
+              precisionTiming: 1,
+              waterPerTapMl: 300,
+              timezoneId: 'Africa/Cairo',
+            ),
+          ])
+          ..insertAll(oldDb.reconcileRuns, [
+            const v2.ReconcileRunsData(
+              id: 1,
+              at: 1000,
+              trigger: 'launch',
+              planned: 3,
+              added: 3,
+              cancelled: 0,
+            ),
+          ]);
+      },
+      validateItems: (newDb) async {
+        expect(await newDb.select(newDb.routines).get(), [
+          const v3.RoutinesData(
+            type: 'eyeRest',
+            intervalMinutes: 25,
+            dailyTarget: 10,
+            enabled: 1,
+            mode: 'rolling',
+          ),
+        ]);
+        expect(await newDb.select(newDb.workWindows).get(), [
+          const v3.WorkWindowsData(
+            id: 1,
+            weekday: 1,
+            startMinute: 600,
+            endMinute: 900,
+          ),
+        ]);
+        expect(await newDb.select(newDb.appSettings).get(), [
+          const v3.AppSettingsData(
+            id: 1,
+            themeVariant: 'amoled',
+            precisionTiming: 1,
+            waterPerTapMl: 300,
+            timezoneId: 'Africa/Cairo',
+            onboardingCompleted: 1,
+            shieldRecoverOnExit: 1,
+          ),
+        ]);
+        expect(await newDb.select(newDb.reconcileRuns).get(), [
+          const v3.ReconcileRunsData(
+            id: 1,
+            at: 1000,
+            trigger: 'launch',
+            planned: 3,
+            added: 3,
+            cancelled: 0,
+          ),
+        ]);
+        expect(await newDb.select(newDb.shieldSessions).get(), isEmpty);
+        expect(await newDb.select(newDb.dayOverrides).get(), isEmpty);
+      },
+    );
+  });
+
+  test(
+    'migration from v1 to v3 keeps data and ends on the v3 schema',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 1,
+        newVersion: 3,
+        createOld: v1.DatabaseAtV1.new,
+        createNew: v3.DatabaseAtV3.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch
+            ..insertAll(oldDb.routines, [
+              const v1.RoutinesData(
+                type: 'hydration',
+                intervalMinutes: 30,
+                dailyTarget: 8,
+                enabled: 1,
+                mode: 'fixedGrid',
+              ),
+            ])
+            ..insertAll(oldDb.workWindows, [
+              const v1.WorkWindowsData(
+                id: 1,
+                weekday: 7,
+                startMinute: 540,
+                endMinute: 1020,
+              ),
+            ])
+            ..insertAll(oldDb.appSettings, [
+              const v1.AppSettingsData(
+                id: 1,
+                themeVariant: 'midnight',
+                precisionTiming: 0,
+                waterPerTapMl: 500,
+              ),
+            ]);
+        },
+        validateItems: (newDb) async {
+          expect(await newDb.select(newDb.routines).get(), [
+            const v3.RoutinesData(
+              type: 'hydration',
+              intervalMinutes: 30,
+              dailyTarget: 8,
+              enabled: 1,
+              mode: 'fixedGrid',
+            ),
+          ]);
+          expect(await newDb.select(newDb.workWindows).get(), [
+            const v3.WorkWindowsData(
+              id: 1,
+              weekday: 7,
+              startMinute: 540,
+              endMinute: 1020,
+            ),
+          ]);
+          expect(await newDb.select(newDb.appSettings).get(), [
+            const v3.AppSettingsData(
+              id: 1,
+              themeVariant: 'midnight',
+              precisionTiming: 0,
+              waterPerTapMl: 500,
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 1,
+            ),
+          ]);
+          expect(await newDb.select(newDb.reconcileRuns).get(), isEmpty);
+          expect(await newDb.select(newDb.shieldSessions).get(), isEmpty);
+          expect(await newDb.select(newDb.dayOverrides).get(), isEmpty);
+        },
+      );
+    },
+  );
 }

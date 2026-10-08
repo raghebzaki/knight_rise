@@ -41,5 +41,35 @@ import workmanager_apple
       GeneratedPluginRegistrant.register(with: registry)
     }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Device health channel (see lib/features/device_health/data). The application
+    // registrar of the implicit engine provides the binary messenger.
+    let healthChannel = FlutterMethodChannel(
+      name: "knight_rise/device_health",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    healthChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "backgroundRefreshStatus":
+        DispatchQueue.main.async {
+          switch UIApplication.shared.backgroundRefreshStatus {
+          case .available: result("available")
+          case .denied: result("denied")
+          case .restricted: result("restricted")
+          @unknown default: result("available")
+          }
+        }
+      case "openAppSettings":
+        DispatchQueue.main.async {
+          if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url, options: [:]) { ok in result(ok) }
+          } else {
+            result(false)
+          }
+        }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 }

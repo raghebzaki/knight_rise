@@ -2,7 +2,15 @@ import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:meta/meta.dart';
 
 /// What the user did with a reminder notification.
-enum ReminderActionKind { done, snooze, open }
+enum ReminderActionKind {
+  done,
+  snooze,
+  open,
+
+  /// "End Shield" on the ongoing Shield status notification. Carries no
+  /// routine types.
+  endShield,
+}
 
 /// A user interaction with a delivered reminder, decoded from the notification
 /// payload. Pure Dart so it can cross isolate boundaries into use cases.

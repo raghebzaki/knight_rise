@@ -6,6 +6,8 @@ import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dar
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/handle_reminder_action.dart';
+import 'package:knight_rise/features/shield/domain/entities/shield_session.dart';
+import 'package:knight_rise/features/shield/domain/usecases/shield_usecases.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/tz.dart';
@@ -13,6 +15,7 @@ import '../../helpers/tz.dart';
 void main() {
   late FakeReminderEventRepository events;
   late FakeScheduleReconciler reconciler;
+  late FakeShieldRepository shields;
   late FixedClock clock;
   late HandleReminderAction handle;
   final slot = at(cairo, 2026, 10, 5, 9, 45);
@@ -23,11 +26,13 @@ void main() {
   setUp(() {
     events = FakeReminderEventRepository();
     reconciler = FakeScheduleReconciler();
+    shields = FakeShieldRepository();
     clock = FixedClock(at(cairo, 2026, 10, 5, 9, 50));
     handle = HandleReminderAction(
       CompleteRoutine(events, FakeSettingsRepository(), clock),
       SnoozeRoutine(events, clock, cairo),
       reconciler,
+      EndShield(shields, clock),
     );
   });
 
@@ -58,5 +63,27 @@ void main() {
     await handle(action(ReminderActionKind.open, {RoutineType.hydration}));
     expect(events.all, isEmpty);
     expect(reconciler.calls, isEmpty);
+  });
+  test('endShield ends the active Shield and reconciles with configChange', () async {
+    final now = clock.now();
+    await shields.add(
+      ShieldSession(
+        startAt: now.subtract(const Duration(minutes: 5)),
+        endAt: now.add(const Duration(minutes: 20)),
+        reason: ShieldReason.focus,
+      ),
+    );
+
+    await handle(action(ReminderActionKind.endShield, {}));
+
+    expect(shields.all.single.endedAt, now);
+    expect(await shields.active(now), isNull);
+    expect(reconciler.calls, [ReconcileTrigger.configChange]);
+    expect(events.all, isEmpty);
+  });
+
+  test('endShield without an active Shield still reconciles', () async {
+    await handle(action(ReminderActionKind.endShield, {}));
+    expect(reconciler.calls, [ReconcileTrigger.configChange]);
   });
 }

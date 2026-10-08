@@ -14,11 +14,32 @@ import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dar
 import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
+import 'package:knight_rise/features/scheduler/presentation/schedule_sync_service.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
+import 'package:knight_rise/features/shield/domain/usecases/shield_usecases.dart';
+import 'package:knight_rise/features/shield/presentation/shield_cubit.dart';
+import 'package:knight_rise/features/work_hours/domain/usecases/day_override_usecases.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/health_fakes.dart';
 import '../../helpers/tz.dart';
+
+ShieldCubit _shieldCubit(Clock clock) {
+  final shields = FakeShieldRepository();
+  final overrides = FakeDayOverrideRepository();
+  final location = FakeLocationProvider(cairo);
+  return ShieldCubit(
+    StartShield(shields, FakeWorkScheduleRepository(), overrides, const ReminderPlanner(), clock, location),
+    ExtendShield(shields, clock),
+    EndShield(shields, clock),
+    SetDayOff(overrides),
+    ExtendWorkDay(overrides),
+    ClearDayOverride(overrides),
+    clock,
+    location,
+  );
+}
 
 void main() {
   Future<FakeReminderEventRepository> pumpHome(
@@ -26,6 +47,8 @@ void main() {
     DateTime now, {
     FakeNotificationGateway? gateway,
     FakeScheduleReconciler? reconciler,
+    HealthHarness? health,
+    RemindersPausedSource? paused,
   }) async {
     final events = FakeReminderEventRepository();
     final settings = FakeSettingsRepository();
@@ -52,7 +75,14 @@ void main() {
             ),
             BlocProvider(
               create: (_) => CycleBloc(
-                WatchCycleInputs(FakeRoutineRepository(), FakeWorkScheduleRepository(), events, settings),
+                WatchCycleInputs(
+                  FakeRoutineRepository(),
+                  FakeWorkScheduleRepository(),
+                  events,
+                  settings,
+                  FakeShieldRepository(),
+                  FakeDayOverrideRepository(),
+                ),
                 const BuildCycleSnapshot(ReminderPlanner()),
                 CompleteRoutine(events, settings, clock),
                 SnoozeRoutine(events, clock, cairo),
@@ -65,7 +95,11 @@ void main() {
             theme: KnightTheme.build(KnightPalette.midnight),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: const HomePage(),
+            home: HomePage(
+              shieldCubitFactory: () => _shieldCubit(clock),
+              deviceHealthCubitFactory: health == null ? null : () => health.cubit,
+              pausedSource: paused,
+            ),
           ),
         ),
       ),
@@ -180,5 +214,68 @@ void main() {
     expect(find.byTooltip('Diagnostics'), findsOneWidget);
     expect(find.byTooltip('Widget gallery'), findsOneWidget);
     await unmount(tester);
+  });
+
+  group('device health chip', () {
+    final now = at(cairo, 2026, 10, 5, 9, 50);
+
+    testWidgets('hidden when everything is fine', (tester) async {
+      await pumpHome(tester, now, health: HealthHarness());
+      expect(find.byKey(const Key('healthChip')), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('shown for a battery warning on an aggressive OEM', (tester) async {
+      final health = HealthHarness(manufacturer: 'Xiaomi Redmi');
+      health.platformFake.ignoringBattery = false;
+      await pumpHome(tester, now, health: health);
+      expect(find.byKey(const Key('healthChip')), findsOneWidget);
+      expect(find.text('Check device health'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('hidden for the info-level battery hint and for blocked notifications', (tester) async {
+      final health = HealthHarness();
+      health.platformFake.ignoringBattery = false;
+      health.gateway.enabled = false;
+      await pumpHome(tester, now, health: health, gateway: health.gateway);
+      expect(find.byKey(const Key('healthChip')), findsNothing);
+      await unmount(tester);
+    });
+  });
+
+  group('reminders paused banner', () {
+    final now = at(cairo, 2026, 10, 5, 9, 50);
+
+    testWidgets('appears on the signal and can be dismissed', (tester) async {
+      final paused = FakeRemindersPausedSource();
+      await pumpHome(tester, now, paused: paused);
+      expect(find.byKey(const Key('pausedBanner')), findsNothing);
+
+      paused.emit();
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Reminders were paused — re-armed now.'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Device health'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('pausedDismiss')));
+      await tester.pump();
+      expect(find.byKey(const Key('pausedBanner')), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('shows for a signal that fired before the page opened, but not one from yesterday', (tester) async {
+      await pumpHome(tester, now, paused: FakeRemindersPausedSource()..remindersPausedAt = now);
+      expect(find.byKey(const Key('pausedBanner')), findsOneWidget);
+      await unmount(tester);
+
+      await pumpHome(
+        tester,
+        now,
+        paused: FakeRemindersPausedSource()..remindersPausedAt = now.subtract(const Duration(days: 1)),
+      );
+      expect(find.byKey(const Key('pausedBanner')), findsNothing);
+      await unmount(tester);
+    });
   });
 }

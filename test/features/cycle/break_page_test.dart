@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/router/app_router.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
@@ -16,6 +17,9 @@ import 'package:knight_rise/features/scheduler/domain/entities/reminder_event.da
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
+import 'package:knight_rise/features/shield/domain/usecases/shield_usecases.dart';
+import 'package:knight_rise/features/shield/presentation/shield_cubit.dart';
+import 'package:knight_rise/features/work_hours/domain/usecases/day_override_usecases.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 import '../../helpers/fakes.dart';
@@ -40,6 +44,24 @@ void main() {
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
+    // The real router builds HomePage, which resolves its ShieldCubit from DI.
+    final shields = FakeShieldRepository();
+    final overrides = FakeDayOverrideRepository();
+    final location = FakeLocationProvider(cairo);
+    getIt.registerFactory<ShieldCubit>(
+      () => ShieldCubit(
+        StartShield(shields, FakeWorkScheduleRepository(), overrides, const ReminderPlanner(), clock, location),
+        ExtendShield(shields, clock),
+        EndShield(shields, clock),
+        SetDayOff(overrides),
+        ExtendWorkDay(overrides),
+        ClearDayOverride(overrides),
+        clock,
+        location,
+      ),
+    );
+    addTearDown(() => getIt.unregister<ShieldCubit>());
+
     router = buildRouter();
     await tester.pumpWidget(
       RepositoryProvider<Clock>.value(
@@ -49,7 +71,14 @@ void main() {
             BlocProvider(create: (_) => ThemeCubit(settings)),
             BlocProvider(
               create: (_) => CycleBloc(
-                WatchCycleInputs(FakeRoutineRepository(), FakeWorkScheduleRepository(), events, settings),
+                WatchCycleInputs(
+                  FakeRoutineRepository(),
+                  FakeWorkScheduleRepository(),
+                  events,
+                  settings,
+                  FakeShieldRepository(),
+                  FakeDayOverrideRepository(),
+                ),
                 const BuildCycleSnapshot(ReminderPlanner()),
                 CompleteRoutine(events, settings, clock),
                 SnoozeRoutine(events, clock, cairo),

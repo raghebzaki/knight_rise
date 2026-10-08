@@ -27,7 +27,7 @@ void main() {
   });
 
   CycleBloc build() => CycleBloc(
-    WatchCycleInputs(routines, schedule, events, settings),
+    WatchCycleInputs(routines, schedule, events, settings, FakeShieldRepository(), FakeDayOverrideRepository()),
     const BuildCycleSnapshot(ReminderPlanner()),
     CompleteRoutine(events, settings, clock),
     SnoozeRoutine(events, clock, cairo),

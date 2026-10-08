@@ -8,18 +8,22 @@ import 'package:meta/meta.dart';
 /// mapped back to the routines and slot it belongs to, even from a cold
 /// background isolate.
 ///
-/// Wire format (version 1): `{"v":1,"t":["hydration","eyeRest"],"at":<epoch ms UTC>}`.
+/// Wire format (version 1): `{"v":1,"t":["hydration","eyeRest"],"at":<epoch ms UTC>}`,
+/// plus `"r":1` on a Shield-recovery reminder (omitted otherwise).
 @immutable
 class ReminderPayload {
-  const ReminderPayload({required this.types, required this.fireAt});
+  const ReminderPayload({required this.types, required this.fireAt, this.recovery = false});
 
   factory ReminderPayload.of(PlannedReminder reminder) =>
-      ReminderPayload(types: Set.unmodifiable(reminder.types), fireAt: reminder.fireAt);
+      ReminderPayload(types: Set.unmodifiable(reminder.types), fireAt: reminder.fireAt, recovery: reminder.recovery);
 
   static const int version = 1;
 
   final Set<RoutineType> types;
   final DateTime fireAt;
+
+  /// True for the "Shield down" summary reminder.
+  final bool recovery;
 
   String encode() {
     final sorted = types.toList()..sort((a, b) => a.index.compareTo(b.index));
@@ -27,6 +31,7 @@ class ReminderPayload {
       'v': version,
       't': [for (final t in sorted) t.name],
       'at': fireAt.toUtc().millisecondsSinceEpoch,
+      if (recovery) 'r': 1,
     });
   }
 
@@ -50,6 +55,7 @@ class ReminderPayload {
       return ReminderPayload(
         types: Set.unmodifiable(types),
         fireAt: DateTime.fromMillisecondsSinceEpoch(at, isUtc: true),
+        recovery: json['r'] == 1,
       );
     } on Object {
       return null;
@@ -60,12 +66,14 @@ class ReminderPayload {
   bool operator ==(Object other) =>
       other is ReminderPayload &&
       other.fireAt.isAtSameMomentAs(fireAt) &&
+      other.recovery == recovery &&
       other.types.length == types.length &&
       other.types.containsAll(types);
 
   @override
-  int get hashCode => Object.hash(fireAt.millisecondsSinceEpoch, Object.hashAllUnordered(types));
+  int get hashCode => Object.hash(fireAt.millisecondsSinceEpoch, recovery, Object.hashAllUnordered(types));
 
   @override
-  String toString() => 'ReminderPayload(${types.map((t) => t.name).join('+')} @ $fireAt)';
+  String toString() =>
+      'ReminderPayload(${types.map((t) => t.name).join('+')} @ $fireAt${recovery ? ', recovery' : ''})';
 }

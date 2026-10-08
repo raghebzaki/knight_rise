@@ -29,6 +29,8 @@ class DriftSettingsRepository implements SettingsRepository {
           precisionTiming: Value(s.precisionTiming),
           waterPerTapMl: Value(s.waterPerTapMl),
           timezoneId: Value(s.timezoneId),
+          onboardingCompleted: Value(s.onboardingCompleted),
+          shieldRecoverOnExit: Value(s.shieldRecoverOnExit),
         ),
       );
 
@@ -39,5 +41,7 @@ class DriftSettingsRepository implements SettingsRepository {
           precisionTiming: r.precisionTiming,
           waterPerTapMl: r.waterPerTapMl,
           timezoneId: r.timezoneId,
+          onboardingCompleted: r.onboardingCompleted,
+          shieldRecoverOnExit: r.shieldRecoverOnExit,
         );
 }

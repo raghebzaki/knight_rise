@@ -33,6 +33,9 @@ abstract final class NotificationActionIds {
 
   /// Action: snooze the reminder.
   static const String snooze = 'snooze';
+
+  /// Action on the ongoing Shield status notification: end the Shield now.
+  static const String endShield = 'end_shield';
 }
 
 /// Android drawable resource name (without extension) used as the notification

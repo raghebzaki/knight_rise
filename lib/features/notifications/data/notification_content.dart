@@ -18,9 +18,17 @@ abstract final class NotificationCopy {
   static AppLocalizations get defaultL10n => lookupAppLocalizations(const Locale('en'));
 
   /// Single routine: its own copy. Several: "Knight's call" + labels joined by " + ".
-  static NotificationContent build(Set<RoutineType> types, {AppLocalizations? l10n}) {
+  ///
+  /// [recovery] is the "Shield down" summary: "Waiting: `labels` joined by " + "".
+  static NotificationContent build(Set<RoutineType> types, {bool recovery = false, AppLocalizations? l10n}) {
     final l = l10n ?? defaultL10n;
     final sorted = sortedTypes(types);
+    if (recovery) {
+      return NotificationContent(
+        title: l.notifRecoveryTitle,
+        body: l.notifRecoveryBody(sorted.map((t) => routineLabel(l, t)).join(' + ')),
+      );
+    }
     if (sorted.length == 1) {
       return switch (sorted.single) {
         RoutineType.hydration => NotificationContent(title: l.notifHydrationTitle, body: l.notifHydrationBody),

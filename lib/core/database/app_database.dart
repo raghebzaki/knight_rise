@@ -56,8 +56,43 @@ class AppSettingsTable extends Table {
   /// IANA id the schedule was last reconciled in (null until first resume check).
   TextColumn get timezoneId => text().nullable()();
 
+  /// False until the onboarding flow finishes. Upgraded installs are set to
+  /// true in `from2To3` so existing users skip onboarding.
+  BoolColumn get onboardingCompleted => boolean().withDefault(const Constant(false))();
+
+  /// Send a single "Shield down" summary reminder when a Shield ends.
+  BoolColumn get shieldRecoverOnExit => boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Shield (focus / meeting) sessions. `end_at` is the planned end; `ended_at`
+/// is set when the user ends the session early.
+@DataClassName('ShieldSessionRow')
+@TableIndex(name: 'idx_shield_sessions_end_at', columns: {#endAt})
+class ShieldSessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get startAt => dateTime()();
+  DateTimeColumn get endAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+
+  /// `ShieldReason.name`.
+  TextColumn get reason => text()();
+}
+
+/// Per-date work-hours overrides ("day off", "working late").
+@DataClassName('DayOverrideRow')
+class DayOverrides extends Table {
+  /// Local date, `YYYY-MM-DD`.
+  TextColumn get date => text()();
+
+  /// `DayOverrideKind.name`: `off` | `extend`.
+  TextColumn get kind => text()();
+  IntColumn get extendMinutes => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date};
 }
 
 /// Audit log of schedule reconciles (diagnostics screen, Milestone 3).
@@ -75,7 +110,9 @@ class ReconcileRuns extends Table {
   TextColumn get error => text().nullable()();
 }
 
-@DriftDatabase(tables: [Routines, WorkWindows, ReminderEvents, AppSettingsTable, ReconcileRuns])
+@DriftDatabase(
+  tables: [Routines, WorkWindows, ReminderEvents, AppSettingsTable, ReconcileRuns, ShieldSessions, DayOverrides],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -86,7 +123,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +136,15 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.appSettings, schema.appSettings.timezoneId);
         await m.createTable(schema.reconcileRuns);
         await m.createIndex(schema.idxReconcileRunsAt);
+      },
+      from2To3: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.onboardingCompleted);
+        await m.addColumn(schema.appSettings, schema.appSettings.shieldRecoverOnExit);
+        // Upgraded installs already know the app: skip onboarding.
+        await customStatement('UPDATE app_settings SET onboarding_completed = 1');
+        await m.createTable(schema.shieldSessions);
+        await m.createIndex(schema.idxShieldSessionsEndAt);
+        await m.createTable(schema.dayOverrides);
       },
     ),
     beforeOpen: (details) async {
