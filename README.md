@@ -19,9 +19,16 @@ dart run build_runner build
 # Localization (lib/l10n/arb -> lib/l10n/generated)
 flutter gen-l10n
 
-flutter run                           # dev flavor (default)
-flutter run --dart-define=FLAVOR=prod # prod flavor
+# Android has native flavors: always pass one (plain `flutter run` fails
+# with "Gradle build failed to produce an .apk file").
+flutter run --flavor dev               # Android, dev (Knight Rise Dev, .dev id)
+flutter run --flavor prod              # Android, prod
+flutter run --dart-define=FLAVOR=dev   # iOS (single Xcode configuration)
 ```
+
+IDE: pick a shared run configuration — Android Studio `.run/` or VS Code
+`.vscode/launch.json`: **Knight Rise (Android dev)**, **(Android prod)** or
+**(iOS)**. Release builds and flavors: `docs/RELEASE.md`.
 
 ## Project structure
 

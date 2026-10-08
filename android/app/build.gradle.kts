@@ -55,6 +55,8 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
+            // The variant Android Studio's Gradle sync selects by default.
+            isDefault = true
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             // Name and icon tint: src/dev/res overrides src/main/res.

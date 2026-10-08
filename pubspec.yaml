@@ -54,6 +54,11 @@ flutter:
   uses-material-design: true
   generate: true
 
+  # Animated splash layers only; the rest of assets/branding/ is source artwork.
+  assets:
+    - assets/branding/splash_mark.png
+    - assets/branding/splash_crest_glow.png
+
   fonts:
     - family: Orbitron
       fonts:

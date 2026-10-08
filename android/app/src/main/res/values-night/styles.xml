@@ -3,6 +3,10 @@
     <!-- The app is dark-only (Midnight / AMOLED), so light and night match. -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
     <!-- Behind Flutter's first frame: Midnight, so there is no white flash. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">

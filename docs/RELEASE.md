@@ -11,7 +11,7 @@ credentials or artwork; everything else is already in the repository.
 | 2 | Android signing config | `android/key.properties` from `android/key.properties.example` (git-ignored) | **YOU** |
 | 3 | Play App Signing enrolment | Play Console › Setup › App signing | **YOU** |
 | 4 | iOS team and bundle id | Xcode › Runner › Signing & Capabilities (bundle id `com.ragheb.knightRise`) | **YOU** |
-| 5 | Icon and splash artwork | `assets/branding/` (sizes in `assets/branding/README.md`) | **YOU** |
+| 5 | Icon and splash artwork | `assets/branding/` (generated from the logo; final vector from the designer recommended) | Done |
 | 6 | Privacy policy values | `site/privacy/index.html` (`{{CONTACT_EMAIL}}`, `{{GITHUB_USER}}`) | **YOU** |
 | 7 | GitHub Pages | Repo › Settings › Pages › Source: **GitHub Actions** | **YOU** |
 | 8 | Store copy and screenshots | `docs/STORE_LISTING.md` | Draft ready, screenshots **YOU** |
@@ -83,22 +83,24 @@ needs iPhone screenshots only. iPads can still run it in iPhone compatibility
 mode. Adding iPad later means setting the family to `1,2`, restoring the iPad
 orientations in `Info.plist` and adding iPad screenshots.
 
-## 5. Icons and splash
+## 5. Icons and splash (done — regenerate when the artwork changes)
 
-1. Add the six PNGs listed in `assets/branding/README.md`.
-2. Generate:
-   ```sh
-   dart run flutter_launcher_icons
-   dart run flutter_native_splash:create
-   ```
-3. Delete the placeholder vectors the generated PNGs replace:
-   `android/app/src/main/res/drawable/ic_launcher_foreground.xml`,
-   `ic_launcher_monochrome.xml` and `splash_icon.xml` (and update
-   `android/app/src/main/res/raw/keep.xml` if you rename resources).
-4. Check the generated `values*/styles.xml` still set `NormalTheme`'s
-   `windowBackground` to `@color/splash_background` (no white flash).
-5. The dev flavor keeps its amber icon background through
-   `android/app/src/dev/res/values/colors.xml`.
+Generated from `assets/branding/knight_rise_logo.jpeg` (see
+`assets/branding/README.md`). To regenerate:
+
+```sh
+/tmp/kr-venv/bin/python -I tool/branding/generate_branding.py   # venv setup in the script header
+dart run flutter_launcher_icons
+git checkout ios/Runner.xcodeproj/project.pbxproj   # the tool sets an unrelated build setting to an invalid value
+dart run flutter_native_splash:create
+git checkout ios/Runner/Info.plist                  # the tool only re-indents it
+flutter test --tags golden --update-goldens          # refresh the splash goldens
+```
+
+Then check: `values*/styles.xml` keep `NormalTheme`'s `windowBackground` at
+`@color/splash_background` (`#0A0F1D`, no white flash), and
+`mipmap-anydpi-v26/ic_launcher.xml` uses `android:inset="0%"`. The dev flavor
+keeps its amber icon background through `android/app/src/dev/res/values/colors.xml`.
 
 The notification small icon (`ic_stat_knight`) is separate: a white
 silhouette vector; replace its path data if the mark changes.

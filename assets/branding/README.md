@@ -1,16 +1,24 @@
-# Branding artwork (you provide)
+# Branding
 
-Drop these files here, then run the generators (see `docs/RELEASE.md`). All
-PNGs are sRGB. Background colour everywhere: Midnight `#0A1020`.
+All app branding comes from one source: `knight_rise_logo.jpeg` (a mockup
+photo of the logo over a desk scene). The shield is **extracted** from it, not
+cropped, by `tool/branding/generate_branding.py` (see its header for the
+method and how to run it). Background colour: `#0A0F1D`.
 
-| File | Size | Notes |
+| File | Size | Used for |
 | --- | --- | --- |
-| `app_icon.png` | 1024 × 1024 | Full icon, opaque, for Android legacy mipmaps and the Play listing (Play needs a 512 × 512 export too). |
-| `app_icon_foreground.png` | 1024 × 1024, transparent | Adaptive-icon foreground. Keep the mark inside the centre 66 % (the safe zone); the rest may be masked. |
-| `app_icon_monochrome.png` | 1024 × 1024, transparent | Single-colour (white) silhouette of the mark for Android 13 themed icons, same safe zone. |
-| `app_icon_ios.png` | 1024 × 1024, opaque | iOS App Store / home screen icon. No transparency, no rounded corners (iOS masks it). |
-| `splash_icon.png` | 768 × 768, transparent | Centred on the splash before Android 12 and on iOS; shown at 1/4 size (192 pt). |
-| `splash_icon_android12.png` | 1152 × 1152, transparent | Android 12+ splash: content must fit the centre circle of 768 px diameter (2/3). |
+| `knight_rise_logo.jpeg` | 2816 × 1536 | Source artwork |
+| `app_icon.png` | 1024², opaque | iOS icon, Android legacy mipmaps (`flutter_launcher_icons.yaml`) |
+| `app_icon_foreground.png` | 1024², transparent | Android adaptive foreground (shield inside the 66 % safe zone; generated with inset 0) |
+| `app_icon_monochrome.png` | 1024², transparent | Android 13 themed icon (white, bright parts only, so the helmet stays readable) |
+| `splash_center.png` | 1024², opaque | Native splash before Android 12 and on iOS (`flutter_native_splash.yaml`) |
+| `splash_center_android12.png` | 1152², opaque | Android 12+ SplashScreen API (shield inside the 768 px circle) |
+| `splash_mark.png` | 526 × 618, transparent | In-app `AnimatedSplash` shield (bundled asset) |
+| `splash_crest_glow.png` | 646 × 738, transparent | In-app crest glow, same frame as the mark padded by 60 px (bundled asset) |
 
-Until then the app ships placeholder vectors (a cyan shield) in
-`android/app/src/main/res/drawable/` so builds look on-brand.
+Only the two `splash_*` layers are bundled in the app (`pubspec.yaml`).
+
+**For the final store release,** ask the designer for the original vector or
+a transparent PNG of the logo and re-run the generator from that: the mockup
+JPEG is ~520 px tall around the shield, enough for these sizes but with JPEG
+softness at 1024 px.

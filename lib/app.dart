@@ -15,6 +15,7 @@ import 'package:knight_rise/features/notifications/presentation/notification_per
 import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
 import 'package:knight_rise/features/scheduler/presentation/schedule_sync_service.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
+import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 class KnightRiseApp extends StatefulWidget {
@@ -33,6 +34,10 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   late final NotificationPermissionCubit _permission = getIt<NotificationPermissionCubit>();
   late final AppLifecycleListener _lifecycle;
   StreamSubscription<void>? _tzSub;
+
+  /// Animated splash over the first route, once per cold start. Held here,
+  /// above the [_scope] key, so a timezone change never replays it.
+  bool _showSplash = true;
 
   /// Changing this recreates the BlocProviders (and so CycleBloc / ThemeCubit)
   /// after a timezone change, so they pick up the new `tz.Location`.
@@ -109,6 +114,11 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
                 ],
                 supportedLocales: AppLocalizations.supportedLocales,
                 routerConfig: _router,
+                builder: (context, child) => SplashOverlay(
+                  show: _showSplash,
+                  onFinished: () => setState(() => _showSplash = false),
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             );
           },

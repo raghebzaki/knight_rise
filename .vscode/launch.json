@@ -1,0 +1,8 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    { "name": "Knight Rise (Android dev)", "request": "launch", "type": "dart", "program": "lib/main.dart", "args": ["--flavor", "dev"] },
+    { "name": "Knight Rise (Android prod)", "request": "launch", "type": "dart", "program": "lib/main.dart", "args": ["--flavor", "prod"] },
+    { "name": "Knight Rise (iOS)", "request": "launch", "type": "dart", "program": "lib/main.dart", "args": ["--dart-define=FLAVOR=dev"] }
+  ]
+}

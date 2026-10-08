@@ -1,13 +1,13 @@
-# Splash screens. Run after adding the artwork in assets/branding/ (docs/RELEASE.md):
+# Native splash (shown before Flutter draws), generated with:
 #   dart run flutter_native_splash:create
-# The app is dark-only, so there is no separate dark variant.
+# Same #0A0F1D as the in-app AnimatedSplash, so the hand-off is seamless.
 flutter_native_splash:
-  color: "#0A1020"
-  image: assets/branding/splash_icon.png
+  color: "#0A0F1D"
+  image: assets/branding/splash_center.png
   android_12:
-    # Android 12+ SplashScreen API: icon without its own background.
-    image: assets/branding/splash_icon_android12.png
-    color: "#0A1020"
+    # Android 12+ SplashScreen API: the shield sits inside the central circle.
+    image: assets/branding/splash_center_android12.png
+    color: "#0A0F1D"
   android: true
   ios: true
   web: false

@@ -34,7 +34,8 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        # Pixel goldens are macOS-rendered (dart_test.yaml); run them locally.
+        run: flutter test --exclude-tags golden
 
   # Catches R8 / Gradle / flavor regressions in the store configuration.
   # Signs with the debug key (no key.properties on CI); not for upload.
