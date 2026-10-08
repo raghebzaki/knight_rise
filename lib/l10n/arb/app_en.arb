@@ -429,5 +429,93 @@
   "onboardingRemindersBlocked": "Notifications are blocked. You can turn them on in your phone's system settings.",
   "onboardingBatteryNote": "Some phones stop reminders to save battery — check Settings › Device health after setup.",
   "onboardingTakeOath": "Take the Oath",
-  "onboardingFinishFailed": "Could not save your setup. Please try again."
+  "onboardingFinishFailed": "Could not save your setup. Please try again.",
+  "navToday": "Today",
+  "navQuestLog": "Quest Log",
+  "questLogTitle": "Quest log",
+  "rankPage": "Page",
+  "rankSquire": "Squire",
+  "rankKnight": "Knight",
+  "rankPaladin": "Paladin",
+  "streakDays": "{count, plural, =0{No streak yet} =1{1-day streak} other{{count}-day streak}}",
+  "@streakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "streakBest": "Best: {count, plural, =1{1 day} other{{count} days}}",
+  "@streakBest": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rankNext": "{days, plural, =1{1 more day to {rank}} other{{days} more days to {rank}}}",
+  "@rankNext": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "rank": {
+        "type": "String"
+      }
+    }
+  },
+  "rankTop": "Highest rank reached",
+  "questRestDay": "Rest day — your streak is safe.",
+  "questQualified": "Today counts toward your streak.",
+  "questGoal": "Reach {percent}% of every routine to extend your streak.",
+  "@questGoal": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "questLastAt": "Last at {time}",
+  "@questLastAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "questNotYet": "Not done yet today",
+  "questDisabled": "Disabled",
+  "waterLoggerTitle": "Log water",
+  "waterLogged": "Logged {ml} ml",
+  "@waterLogged": {
+    "placeholders": {
+      "ml": {
+        "type": "int"
+      }
+    }
+  },
+  "undo": "Undo",
+  "waterLogFailed": "Could not log water. Try again.",
+  "focusTitle": "Focus time",
+  "focusToday": "Today",
+  "focusWeek": "Last 7 days",
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHoursMinutes": "{hours} h {minutes} min",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
 }

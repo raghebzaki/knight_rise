@@ -159,7 +159,8 @@ class BuildCycleSnapshot {
 }
 
 /// Marks a routine done now. Hydration also logs water: `waterMl` when given,
-/// otherwise one tap (`settings.waterPerTapMl`, 250 ml by default).
+/// otherwise one tap (`settings.waterPerTapMl`, 250 ml by default). Returns
+/// the new event's id (used by [UndoCompletion]).
 @injectable
 class CompleteRoutine {
   const CompleteRoutine(this._events, this._settings, this._clock);
@@ -168,9 +169,9 @@ class CompleteRoutine {
   final SettingsRepository _settings;
   final Clock _clock;
 
-  Future<void> call(RoutineType type, {DateTime? scheduledAt, int? waterMl}) async {
+  Future<int> call(RoutineType type, {DateTime? scheduledAt, int? waterMl}) async {
     final settings = await _settings.get();
-    await _events.add(
+    return await _events.add(
       ReminderEvent(
         type: type,
         outcome: ReminderOutcome.done,
@@ -180,6 +181,17 @@ class CompleteRoutine {
       ),
     );
   }
+}
+
+/// Removes a completion logged in the app (the water logger's 5 s undo).
+/// The schedule re-plans through the events stream like any other change.
+@injectable
+class UndoCompletion {
+  const UndoCompletion(this._events);
+
+  final ReminderEventRepository _events;
+
+  Future<void> call(int eventId) => _events.delete(eventId);
 }
 
 /// Snoozes a routine for [kSnoozeDuration]. Returns false once the routine

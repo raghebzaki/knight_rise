@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/config/flavor.dart';
+import 'package:knight_rise/core/router/app_shell.dart';
 import 'package:knight_rise/core/router/break_location.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/break_page.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/home_page.dart';
@@ -8,13 +9,16 @@ import 'package:knight_rise/features/diagnostics/presentation/diagnostics_page.d
 import 'package:knight_rise/features/gallery/presentation/gallery_page.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_gate.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_page.dart';
+import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/presentation/routine_editor_page.dart';
 import 'package:knight_rise/features/routines/presentation/routines_page.dart';
 import 'package:knight_rise/features/settings/presentation/settings_page.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_hours_page.dart';
 
-/// Routes. `/settings`, `/settings/work-hours`, `/settings/routines` and
+/// Routes. `/` (Today) and `/quest` (Quest Log) are the bottom-navigation
+/// tabs of [AppShell]; each keeps its state while the other is shown. Every
+/// other route is full screen, above the shell. `/settings`, `/settings/work-hours`, `/settings/routines` and
 /// `/settings/routines/:type` (invalid type redirects to the list).
 /// `/break?types=hydration,eyeRest` is the notification-tap target;
 /// invalid or empty `types` redirect to `/`.
@@ -27,7 +31,17 @@ GoRouter buildRouter({String initialLocation = '/', OnboardingGate? gate}) => Go
   redirect: gate == null ? null : (_, state) => onboardingRedirect(completed: gate.completed, path: state.uri.path),
   routes: [
     GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
-    GoRoute(path: '/', builder: (_, _) => const HomePage()),
+    StatefulShellRoute.indexedStack(
+      builder: (_, _, shell) => AppShell(shell: shell),
+      branches: [
+        StatefulShellBranch(
+          routes: [GoRoute(path: '/', builder: (_, _) => const HomePage())],
+        ),
+        StatefulShellBranch(
+          routes: [GoRoute(path: '/quest', builder: (_, _) => const QuestLogPage())],
+        ),
+      ],
+    ),
     GoRoute(
       path: '/break',
       redirect: (_, state) => parseBreakTypes(state.uri.queryParameters['types']).isEmpty ? '/' : null,

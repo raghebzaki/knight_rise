@@ -6,6 +6,8 @@ import 'package:knight_rise/core/time/location_provider.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/pending_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
+import 'package:knight_rise/features/quest_log/domain/entities/daily_summary.dart';
+import 'package:knight_rise/features/quest_log/domain/repositories/daily_summary_repository.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
@@ -191,6 +193,34 @@ class FakeDayOverrideRepository implements DayOverrideRepository {
     _cell.set(kept);
     return removed;
   }
+}
+
+class FakeDailySummaryRepository implements DailySummaryRepository {
+  FakeDailySummaryRepository([List<DailySummary> initial = const []]) : _cell = _Cell([...initial]);
+  final _Cell<List<DailySummary>> _cell;
+  List<DailySummary> get all => _cell.value;
+
+  List<DailySummary> _from(DateTime date) {
+    final key = dateKey(date);
+    return _cell.value.where((s) => dateKey(s.date).compareTo(key) >= 0).toList()
+      ..sort((a, b) => dateKey(a.date).compareTo(dateKey(b.date)));
+  }
+
+  @override
+  Stream<List<DailySummary>> watchFrom(DateTime date) => _cell.watch((_) => _from(date));
+
+  @override
+  Future<List<DailySummary>> getFrom(DateTime date) async => _from(date);
+
+  @override
+  Future<DateTime?> latestDate() async => _from(DateTime.utc(1970)).lastOrNull?.date;
+
+  @override
+  Future<void> upsert(DailySummary summary) async => _cell.set([
+    for (final s in _cell.value)
+      if (dateKey(s.date) != dateKey(summary.date)) s,
+    summary,
+  ]);
 }
 
 class FakeSettingsRepository implements SettingsRepository {

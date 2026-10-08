@@ -47,6 +47,13 @@ abstract class DailySummary with _$DailySummary {
   /// one enabled routine. Every other day is neutral.
   bool get countsTowardStreak => isWorkDay && routines.any((r) => r.enabled);
 
+  /// Mean progress over the enabled routines, 0..1 (0 when none is enabled).
+  double get overallProgress {
+    final enabled = routines.where((r) => r.enabled).toList();
+    if (enabled.isEmpty) return 0;
+    return enabled.fold<double>(0, (sum, r) => sum + measureOf(r).fraction) / enabled.length;
+  }
+
   /// [routine]'s progress that day (hydration in ml).
   QuestMeasure measureOf(RoutineDaySummary routine) => QuestMeasure.of(
     routine.type,
