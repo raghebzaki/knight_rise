@@ -96,6 +96,13 @@ void main() {
       expect(ar.language, 'اللغة');
     });
 
+    test('knight ranks, alone and in a sentence', () {
+      final l = AppLocalizationsAr();
+      expect([l.rankPage, l.rankSquire, l.rankKnight, l.rankPaladin], ['مُتدرب', 'مُحارب', 'فارس', 'فارس أسطوري']);
+      expect(l.rankNext(4, l.rankKnight), '4 أيام لبلوغ رتبة فارس');
+      expect(l.rankUpBody(l.rankSquire, 3), 'ارتقيت إلى رتبة مُحارب بسلسلة من 3 أيام.');
+    });
+
     test('plurals use the Arabic forms, with Latin digits', () {
       final l = AppLocalizationsAr();
       expect(l.streakDays(1), 'سلسلة يوم واحد');

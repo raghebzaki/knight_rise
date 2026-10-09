@@ -2,7 +2,7 @@
 
 Run on the device matrix: Pixel (stock Android 14+), Samsung (One UI), Xiaomi
 (HyperOS), iPhone (iOS 17+). Tick each line; note the device for any failure.
-Automated coverage: 680 tests including the M4 gate (`test/gate/m4_gate_test.dart`)
+Automated coverage: 735 tests including the M4 gate (`test/gate/m4_gate_test.dart`)
 and the accessibility audit (`test/accessibility/`).
 
 ## 0. Setup
@@ -53,12 +53,23 @@ and the accessibility audit (`test/accessibility/`).
 - [ ] Stretch is neon lime everywhere (rings, cards, chart filter, notification accent if any).
 - [ ] Turn off airplane mode / network: nothing changes (the app is fully offline).
 
+## 5b. Arabic & English
+
+- [ ] Fresh install on a phone set to **Arabic**: onboarding opens in Arabic, right-to-left. On a phone set to English or any other language (e.g. French): English.
+- [ ] Onboarding step 0: tap العربية, and the whole flow switches to Arabic and RTL at once; tap English to switch back. Choices made on later steps survive a switch.
+- [ ] Settings › Language: switching works at any time and every tab follows (Today, Quest Log, History, Settings).
+- [ ] The chosen language survives killing the app and a **reboot**, and the first frame is already in that language (no English flash).
+- [ ] Arabic: text is joined (no gaps between letters), numbers use Latin digits, ranks read مُتدرب / مُحارب / فارس / فارس أسطوري, plurals read naturally ("سلسلة 5 أيام", "سلسلة 14 يومًا").
+- [ ] Arabic in RTL: back arrows and list chevrons point the right way, sliders and progress fill from the right, the History chart and time pickers are readable, nothing overlaps at 200 % font size.
+- [ ] Notifications stay in English in both languages (expected for v1.0; localized in v1.1).
+
 ## 6. Release build and updates (Android prod, R8)
 
 - [ ] Install the prod release, let reminders schedule, **reboot**: reminders still fire.
 - [ ] **Update install:** install build N, let reminders schedule, install build N+1 (bump `+build`) over it **without opening it**, wait for the next reminder: it fires. Then reboot: still fires.
 - [ ] Notification small icon is the shield (not a blank square).
-- [ ] Splash: Midnight background with the icon, no white flash (Android 12+ and older).
+- [ ] Splash: Midnight background with the icon, no white flash (Android 12+ and older); the hand-off to the first screen shows no colour step.
+- [ ] Animated splash plays on a normal cold start. Kill the app, then tap a reminder notification: **no** animated splash, the break screen opens at once (Android and iOS).
 - [ ] Device health › open settings buttons open **this** app's pages (prod and dev).
 
 ## 7. Regression (M2 / M3)
