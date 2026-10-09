@@ -237,6 +237,13 @@ void main() {
     expect(window.calls, ['hide']);
   });
 
+  test('hideToTray hides the window and never throws', () async {
+    await shell.start();
+    window.calls.clear();
+    await shell.hideToTray();
+    expect(window.calls, ['hide']);
+  });
+
   test('Windows left click brings the window to front', () async {
     await shell.start();
     window.calls.clear();

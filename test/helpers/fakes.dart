@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:knight_rise/core/platform/platform_shell.dart';
 import 'package:knight_rise/core/time/device_timezone.dart';
 import 'package:knight_rise/core/time/local_day.dart';
 import 'package:knight_rise/core/time/location_provider.dart';
@@ -429,4 +430,19 @@ class FakeNotificationGateway implements NotificationGateway {
     clearShieldStatusCalls++;
     shieldStatusUntil = null;
   }
+}
+
+/// A [PlatformShell] that records `hideToTray` / `bringToFront` calls.
+class FakePlatformShell implements PlatformShell {
+  int hides = 0;
+  int fronts = 0;
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> bringToFront() async => fronts++;
+
+  @override
+  Future<void> hideToTray() async => hides++;
 }

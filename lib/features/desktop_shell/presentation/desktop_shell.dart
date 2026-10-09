@@ -72,7 +72,7 @@ class DesktopShell implements PlatformShell {
     // Before anything else can run: from here on the close button only hides.
     await _step('prevent close', () => _window.setPreventClose(true));
     await _step('minimum size', () => _window.setMinimumSize(minimumWindowSize));
-    _subscriptions.add(_window.closeRequests.listen((_) => unawaited(_step('hide to tray', _window.hide))));
+    _subscriptions.add(_window.closeRequests.listen((_) => unawaited(hideToTray())));
     final mac = defaultTargetPlatform == TargetPlatform.macOS;
     await _step('tray icon', () => _tray.setIcon(mac ? _macIcon : _windowsIcon, isTemplate: mac));
     await _step('tray tooltip', () async => await _tray.setToolTip((await _localizations()).appTitle));
@@ -93,6 +93,9 @@ class DesktopShell implements PlatformShell {
     await _step('show window', _window.show);
     await _step('focus window', _window.focus);
   }
+
+  @override
+  Future<void> hideToTray() => _step('hide to tray', _window.hide);
 
   Future<void> _onClick(TrayClick click) async {
     if (defaultTargetPlatform == TargetPlatform.windows && click == TrayClick.left) {

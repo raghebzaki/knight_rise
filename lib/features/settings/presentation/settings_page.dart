@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:knight_rise/core/config/app_info.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/shortcuts/shortcuts_dialog.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
@@ -54,6 +56,12 @@ class _SettingsPageState extends State<SettingsPage> {
         : BlocProvider(create: (_) => getIt<SettingsCubit>(), child: view);
   }
 }
+
+/// Desktop platforms, where keyboard shortcuts are a primary input.
+bool get _hasKeyboard => switch (defaultTargetPlatform) {
+  TargetPlatform.macOS || TargetPlatform.windows || TargetPlatform.linux => true,
+  _ => false,
+};
 
 class _SettingsView extends StatelessWidget {
   const _SettingsView();
@@ -174,6 +182,13 @@ class _SettingsView extends StatelessWidget {
                       );
                     },
                   ),
+                  if (_hasKeyboard)
+                    ListTile(
+                      key: const Key('keyboardShortcutsRow'),
+                      leading: const Icon(Icons.keyboard_outlined),
+                      title: Text(l.settingsKeyboardShortcuts),
+                      onTap: () => unawaited(showShortcutsDialog(context)),
+                    ),
                 ],
               ),
               _Group(

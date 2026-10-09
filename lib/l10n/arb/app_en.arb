@@ -742,5 +742,77 @@
   "historyDayRoutines": "Routines",
   "@historyDayRoutines": {
     "description": "Heading of the per-routine breakdown in the day detail pane."
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Button that closes a dialog."
+  },
+  "shortcutsTitle": "Keyboard shortcuts",
+  "@shortcutsTitle": {
+    "description": "Title of the keyboard shortcut cheat sheet, the Help menu item and the Settings row."
+  },
+  "shortcutsGroupNavigate": "Navigate",
+  "@shortcutsGroupNavigate": {
+    "description": "Cheat sheet section: switching screens."
+  },
+  "shortcutsGroupReminders": "Reminders",
+  "@shortcutsGroupReminders": {
+    "description": "Cheat sheet section: acting on reminders."
+  },
+  "shortcutsGroupWindow": "Window",
+  "@shortcutsGroupWindow": {
+    "description": "Cheat sheet section: window controls."
+  },
+  "shortcutsGroupHelp": "Help",
+  "@shortcutsGroupHelp": {
+    "description": "Cheat sheet section: help."
+  },
+  "shortcutOpenSettings": "Open Settings",
+  "@shortcutOpenSettings": {
+    "description": "Cheat sheet row for the Settings shortcut."
+  },
+  "shortcutDone": "Done (next reminder)",
+  "@shortcutDone": {
+    "description": "Cheat sheet row and menu item: complete the next or due reminder."
+  },
+  "shortcutSnooze": "Snooze (next reminder)",
+  "@shortcutSnooze": {
+    "description": "Cheat sheet row and menu item: snooze the next or due reminder."
+  },
+  "shortcutFocusShield": "Start or end Focus Shield",
+  "@shortcutFocusShield": {
+    "description": "Cheat sheet row and menu item: toggles a 25-minute focus Shield."
+  },
+  "shortcutHideToTray": "Hide to tray",
+  "@shortcutHideToTray": {
+    "description": "Cheat sheet row and menu item: hides the window to the system tray."
+  },
+  "shortcutShowShortcuts": "Show keyboard shortcuts",
+  "@shortcutShowShortcuts": {
+    "description": "Cheat sheet row and menu item that open this cheat sheet."
+  },
+  "menuAppSettings": "Settings…",
+  "@menuAppSettings": {
+    "description": "macOS application menu item that opens Settings."
+  },
+  "menuGo": "Go",
+  "@menuGo": {
+    "description": "macOS menu bar menu title for switching screens."
+  },
+  "menuReminders": "Reminders",
+  "@menuReminders": {
+    "description": "macOS menu bar menu title for reminder actions."
+  },
+  "menuWindow": "Window",
+  "@menuWindow": {
+    "description": "macOS menu bar menu title for window actions."
+  },
+  "menuHelp": "Help",
+  "@menuHelp": {
+    "description": "macOS menu bar menu title for help."
+  },
+  "settingsKeyboardShortcuts": "Keyboard shortcuts",
+  "@settingsKeyboardShortcuts": {
+    "description": "Settings row (desktop) that opens the shortcut cheat sheet."
   }
 }

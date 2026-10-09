@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:knight_rise/core/shortcuts/shortcuts_dialog.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
@@ -56,6 +58,29 @@ void main() {
     expect(find.text('All good'), findsOneWidget);
     expect(find.text('Version 1.0.0'), findsOneWidget);
     expect(find.text('Stay Active. Stay Focused.'), findsOneWidget);
+  });
+
+  testWidgets('the Keyboard shortcuts row is desktop only and opens the cheat sheet', (tester) async {
+    await pumpSettings(tester);
+    expect(find.byKey(const Key('keyboardShortcutsRow')), findsNothing); // the test platform is Android
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await pumpSettings(tester);
+      await tester.ensureVisible(find.byKey(const Key('keyboardShortcutsRow')));
+      await tester.tap(find.byKey(const Key('keyboardShortcutsRow')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ShortcutsDialog), findsOneWidget);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ShortcutsDialog), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('theme selector writes the variant', (tester) async {

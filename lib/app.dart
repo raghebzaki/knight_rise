@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
+import 'package:knight_rise/core/shortcuts/app_shortcuts.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
@@ -50,6 +51,10 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   /// Changing this recreates the BlocProviders (and so CycleBloc / ThemeCubit)
   /// after a timezone change, so they pick up the new `tz.Location`.
   Key _scope = UniqueKey();
+
+  /// Keeps the shortcut host (and so the single native macOS menu bar) alive across a scope reset: a second
+  /// PlatformMenuBar mounting before the first is disposed would clear the menu.
+  final GlobalKey _shortcutsKey = GlobalKey();
 
   @override
   void initState() {
@@ -133,10 +138,14 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
                 // Inside Localizations: the resolved language is known here,
                 // and RTL follows from GlobalWidgetsLocalizations.
                 builder: (context, child) {
-                  final app = SplashOverlay(
-                    show: _showSplash,
-                    onFinished: () => setState(() => _showSplash = false),
-                    child: child ?? const SizedBox.shrink(),
+                  final app = AppShortcuts(
+                    key: _shortcutsKey,
+                    router: _router,
+                    child: SplashOverlay(
+                      show: _showSplash,
+                      onFinished: () => setState(() => _showSplash = false),
+                      child: child ?? const SizedBox.shrink(),
+                    ),
                   );
                   return KnightTheme.isJoinedScript(Localizations.localeOf(context))
                       ? Theme(data: KnightTheme.build(palette, joinedScript: true), child: app)

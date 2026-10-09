@@ -46,6 +46,10 @@ abstract final class KnightTheme {
       scaffoldBackgroundColor: p.background,
       canvasColor: p.background,
       fontFamily: KnightFonts.body,
+      // Keyboard focus and mouse hover wash for ink wells without their own treatment (list tiles, icon buttons,
+      // chips, rail and bar destinations): cyan, as the accent is reserved for energy, action and focus.
+      focusColor: focusWash(p),
+      hoverColor: p.primary.withValues(alpha: 0.08),
       textTheme: text,
       extensions: [KnightTokens.fromPalette(p)],
       splashFactory: InkSparkle.splashFactory,
@@ -74,6 +78,10 @@ abstract final class KnightTheme {
           shape: WidgetStatePropertyAll(mdShape),
           textStyle: WidgetStatePropertyAll(text.labelLarge),
           foregroundColor: WidgetStatePropertyAll(p.onPrimary),
+          // Cyan on cyan would vanish, so a focused filled button gets a light ring.
+          side: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.focused) ? BorderSide(color: p.onSurface, width: 2) : null,
+          ),
           backgroundColor: WidgetStateProperty.resolveWith((s) {
             if (s.contains(WidgetState.disabled)) return p.outline;
             if (s.contains(WidgetState.pressed)) return p.primaryPressed;
@@ -102,6 +110,15 @@ abstract final class KnightTheme {
           shape: WidgetStatePropertyAll(mdShape),
           textStyle: WidgetStatePropertyAll(text.labelLarge),
           foregroundColor: WidgetStatePropertyAll(p.primary),
+          overlayColor: WidgetStateProperty.resolveWith((s) {
+            if (s.contains(WidgetState.focused)) return focusWash(p);
+            if (s.contains(WidgetState.hovered)) return p.primary.withValues(alpha: 0.08);
+            if (s.contains(WidgetState.pressed)) return p.primary.withValues(alpha: 0.12);
+            return null;
+          }),
+          side: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.focused) ? BorderSide(color: p.primary) : null,
+          ),
         ),
       ),
       switchTheme: SwitchThemeData(
@@ -177,6 +194,9 @@ abstract final class KnightTheme {
       progressIndicatorTheme: ProgressIndicatorThemeData(color: p.primary, linearTrackColor: p.surfaceContainerHigh),
     );
   }
+
+  /// The translucent cyan behind a keyboard-focused control.
+  static Color focusWash(KnightPalette p) => p.primary.withValues(alpha: 0.18);
 
   /// Type scale from the architecture doc.
   ///

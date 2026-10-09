@@ -10,6 +10,10 @@ abstract interface class PlatformShell {
   /// Shows and focuses the main window, un-hiding it if it was sent to the
   /// tray. Never throws.
   Future<void> bringToFront();
+
+  /// Hides the main window to the tray (the keyboard shortcut for the close
+  /// button). Nothing on mobile. Never throws.
+  Future<void> hideToTray();
 }
 
 /// Mobile: there is no window or tray to manage.
@@ -23,4 +27,7 @@ class NoopPlatformShell implements PlatformShell {
 
   @override
   Future<void> bringToFront() async {}
+
+  @override
+  Future<void> hideToTray() async {}
 }

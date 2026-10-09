@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
+import 'package:knight_rise/core/shortcuts/app_intents.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
@@ -43,6 +44,9 @@ class _BreakPageState extends State<BreakPage> {
   final _done = <RoutineType>{};
   int _page = 0;
 
+  /// Selected water amount; held here so the Done shortcut logs what the chips show.
+  int _waterMl = kDefaultWaterMl;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -62,6 +66,21 @@ class _BreakPageState extends State<BreakPage> {
     }
   }
 
+  /// Mod+Enter: Done / Log on the step in view (a no-op once that step is done).
+  void _completeCurrent() {
+    final type = widget.types[_page.clamp(0, widget.types.length - 1)];
+    _complete(type, waterMl: type == RoutineType.hydration ? _waterMl : null);
+  }
+
+  /// Esc: leave the break, like the back button.
+  void _leave() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   void _finish() {
     final messenger = ScaffoldMessenger.of(context);
     final message = AppLocalizations.of(context).questUpdated;
@@ -77,6 +96,19 @@ class _BreakPageState extends State<BreakPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final types = widget.types;
+    // The Actions sit above an autofocused Focus so they are on the focus path even before anything inside is
+    // focused; they override the app-wide Done (Mod+Enter) and close (Esc) for this page. Done stays enabled
+    // (and does nothing) after the step is complete so the key never falls through to Today's reminders.
+    return Actions(
+      actions: {
+        CompleteNextIntent: CallbackAction<CompleteNextIntent>(onInvoke: (_) => _completeCurrent()),
+        DismissIntent: CallbackAction<DismissIntent>(onInvoke: (_) => _leave()),
+      },
+      child: Focus(autofocus: true, skipTraversal: true, child: _scaffold(l, types)),
+    );
+  }
+
+  Widget _scaffold(AppLocalizations l, List<RoutineType> types) {
     return Scaffold(
       appBar: AppBar(title: Text(l.breakTitle.toUpperCase())),
       body: SafeArea(
@@ -103,6 +135,8 @@ class _BreakPageState extends State<BreakPage> {
                           onDone: _done.contains(type) ? null : () => _complete(type),
                         ),
                         RoutineType.hydration => _HydrationStep(
+                          ml: _waterMl,
+                          onSelect: (ml) => setState(() => _waterMl = ml),
                           onLog: _done.contains(type) ? null : (ml) => _complete(type, waterMl: ml),
                         ),
                       },
@@ -342,23 +376,18 @@ class _StretchStepState extends State<_StretchStep> {
 
 // ------------------------------------------------------------ hydration
 
-class _HydrationStep extends StatefulWidget {
-  const _HydrationStep({required this.onLog});
+class _HydrationStep extends StatelessWidget {
+  const _HydrationStep({required this.ml, required this.onSelect, required this.onLog});
 
+  /// Selected amount, owned by the page.
+  final int ml;
+  final ValueChanged<int> onSelect;
   final ValueChanged<int>? onLog;
-
-  @override
-  State<_HydrationStep> createState() => _HydrationStepState();
-}
-
-class _HydrationStepState extends State<_HydrationStep> {
-  int _ml = kDefaultWaterMl;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
-    final onLog = widget.onLog;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -372,12 +401,12 @@ class _HydrationStepState extends State<_HydrationStep> {
           spacing: KnightSpacing.md,
           runSpacing: KnightSpacing.sm,
           children: [
-            for (final ml in kWaterChoicesMl)
-              ChoiceChip(label: Text(l.mlAmount(ml)), selected: _ml == ml, onSelected: (_) => setState(() => _ml = ml)),
+            for (final choice in kWaterChoicesMl)
+              ChoiceChip(label: Text(l.mlAmount(choice)), selected: ml == choice, onSelected: (_) => onSelect(choice)),
           ],
         ),
         const SizedBox(height: KnightSpacing.xl),
-        FilledButton(onPressed: onLog == null ? null : () => onLog(_ml), child: Text(l.logWater)),
+        FilledButton(onPressed: onLog == null ? null : () => onLog!(ml), child: Text(l.logWater)),
       ],
     );
   }

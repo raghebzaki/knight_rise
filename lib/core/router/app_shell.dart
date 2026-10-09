@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
 import 'package:knight_rise/core/layout/window_size.dart';
+import 'package:knight_rise/core/shortcuts/shell_navigation.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/features/quest_log/presentation/rank_up_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/widgets/rank_up_dialog.dart';
@@ -16,6 +17,13 @@ import 'package:knight_rise/l10n/generated/app_localizations.dart';
 /// a rail when medium or expanded, an extended sidebar when large (see
 /// [WindowSizeClass]). Also hosts the rank-up celebration, so a pending
 /// rank-up shows on whichever tab opens first.
+///
+/// Keyboard: the navigation and the content are separate focus traversal
+/// groups, each in reading order. With a rail or sidebar Tab walks its
+/// destinations first, then the page (an explicit order, so it holds in
+/// right-to-left layouts too); with the bottom bar the page comes first and
+/// the bar last, as on screen. The
+/// app-wide shortcuts (Ctrl/Cmd+1..4) switch branches through [ShellNavigation].
 class AppShell extends StatefulWidget {
   const AppShell({required this.shell, super.key, this.rankUpCubitFactory});
 
@@ -32,6 +40,7 @@ class _AppShellState extends State<AppShell> {
   late final RankUpCubit? _rankUp = _resolveRankUp()?..start();
   late final AppLifecycleListener _lifecycle;
   bool _celebrating = false;
+  ShellNavigation? _navigation;
 
   RankUpCubit? _resolveRankUp() {
     final factory = widget.rankUpCubitFactory;
@@ -47,6 +56,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    _navigation?.detach(widget.shell);
     _lifecycle.dispose();
     unawaited(_rankUp?.close());
     super.dispose();
@@ -70,6 +80,8 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final shell = widget.shell;
+    // Keyboard shortcuts switch branches through this shell (see ShellNavigation).
+    _navigation = ShellNavigationScope.maybeOf(context)?..attach(shell);
     final size = context.windowSizeClass;
     final destinations = _destinations(l);
     // Re-selecting the current destination returns it to its first page.
@@ -78,48 +90,67 @@ class _AppShellState extends State<AppShell> {
     if (size.usesRail) {
       final extended = size == WindowSizeClass.large;
       scaffold = Scaffold(
-        body: Row(
-          children: [
-            SafeArea(
-              child: NavigationRail(
-                selectedIndex: shell.currentIndex,
-                onDestinationSelected: select,
-                extended: extended,
-                minExtendedWidth: 256,
-                labelType: size == WindowSizeClass.expanded
-                    ? NavigationRailLabelType.all
-                    : NavigationRailLabelType.none,
-                leading: extended
-                    ? Padding(
-                        padding: const EdgeInsetsDirectional.only(bottom: KnightSpacing.md),
-                        child: Text(l.appTitle, style: Theme.of(context).textTheme.titleMedium),
-                      )
-                    : null,
-                destinations: [
-                  for (final d in destinations)
-                    NavigationRailDestination(
-                      icon: Icon(d.icon),
-                      selectedIcon: Icon(d.selectedIcon),
-                      label: Text(d.label),
+        // Explicit order: the rail's destinations come before the page whatever their pixel positions (reading
+        // order alone would visit the page's app bar first), and each side keeps reading order inside.
+        body: FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(secondary: ReadingOrderTraversalPolicy()),
+          child: Row(
+            children: [
+              FocusTraversalOrder(
+                order: const NumericFocusOrder(0),
+                child: SafeArea(
+                  child: FocusTraversalGroup(
+                    policy: ReadingOrderTraversalPolicy(),
+                    child: NavigationRail(
+                      selectedIndex: shell.currentIndex,
+                      onDestinationSelected: select,
+                      extended: extended,
+                      minExtendedWidth: 256,
+                      labelType: size == WindowSizeClass.expanded
+                          ? NavigationRailLabelType.all
+                          : NavigationRailLabelType.none,
+                      leading: extended
+                          ? Padding(
+                              padding: const EdgeInsetsDirectional.only(bottom: KnightSpacing.md),
+                              child: Text(l.appTitle, style: Theme.of(context).textTheme.titleMedium),
+                            )
+                          : null,
+                      destinations: [
+                        for (final d in destinations)
+                          NavigationRailDestination(
+                            icon: Icon(d.icon),
+                            selectedIcon: Icon(d.selectedIcon),
+                            label: Text(d.label),
+                          ),
+                      ],
                     ),
-                ],
+                  ),
+                ),
               ),
-            ),
-            const VerticalDivider(width: 1),
-            Expanded(child: shell),
-          ],
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: FocusTraversalOrder(
+                  order: const NumericFocusOrder(1),
+                  child: FocusTraversalGroup(policy: ReadingOrderTraversalPolicy(), child: shell),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     } else {
       scaffold = Scaffold(
-        body: shell,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: select,
-          destinations: [
-            for (final d in destinations)
-              NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label),
-          ],
+        body: FocusTraversalGroup(policy: ReadingOrderTraversalPolicy(), child: shell),
+        bottomNavigationBar: FocusTraversalGroup(
+          policy: ReadingOrderTraversalPolicy(),
+          child: NavigationBar(
+            selectedIndex: shell.currentIndex,
+            onDestinationSelected: select,
+            destinations: [
+              for (final d in destinations)
+                NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label),
+            ],
+          ),
         ),
       );
     }
