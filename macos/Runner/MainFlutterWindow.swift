@@ -6,6 +6,11 @@ import window_manager
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
+    // The splash background (KnightPalette.midnight #0A1020) until Flutter's first frame, instead of the system
+    // window colour, so the window opens straight into the AnimatedSplash colours.
+    let launchBackground = NSColor(srgbRed: 0x0A / 255.0, green: 0x10 / 255.0, blue: 0x20 / 255.0, alpha: 1)
+    flutterViewController.backgroundColor = launchBackground
+    self.backgroundColor = launchBackground
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)

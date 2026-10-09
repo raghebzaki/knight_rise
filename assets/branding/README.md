@@ -9,12 +9,15 @@ method and how to run it). Background colour: `#0A1020`.
 | --- | --- | --- |
 | `knight_rise_logo.jpeg` | 2816 × 1536 | Source artwork |
 | `app_icon.png` | 1024², opaque | iOS icon, Android legacy mipmaps (`flutter_launcher_icons.yaml`) |
+| `app_icon_macos.png` | 1024², transparent | macOS icon (Apple grid: 824 px rounded square, soft shadow) |
 | `app_icon_foreground.png` | 1024², transparent | Android adaptive foreground (shield inside the 66 % safe zone; generated with inset 0) |
 | `app_icon_monochrome.png` | 1024², transparent | Android 13 themed icon (white, bright parts only, so the helmet stays readable) |
 | `splash_center.png` | 1024², opaque | Native splash before Android 12 and on iOS (`flutter_native_splash.yaml`) |
 | `splash_center_android12.png` | 1152², opaque | Android 12+ SplashScreen API (shield inside the 768 px circle) |
 | `splash_mark.png` | 526 × 618, transparent | In-app `AnimatedSplash` shield (bundled asset) |
 | `splash_crest_glow.png` | 646 × 738, transparent | In-app crest glow, same frame as the mark padded by 60 px (bundled asset) |
+
+The generator also writes `windows/runner/resources/app_icon.ico` (from `app_icon.png`, 16 to 256 px).
 
 Only the two `splash_*` layers are bundled in the app (`pubspec.yaml`).
 

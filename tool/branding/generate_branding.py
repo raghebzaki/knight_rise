@@ -11,7 +11,7 @@ Usage (Pillow, NumPy and SciPy in an isolated venv):
     python3 -m venv /tmp/kr-venv && /tmp/kr-venv/bin/pip install pillow numpy scipy
     /tmp/kr-venv/bin/python -I tool/branding/generate_branding.py
 then:
-    dart run flutter_launcher_icons
+    dart run flutter_launcher_icons   # Android, iOS, macOS (the Windows .ico is written by this script)
     git checkout ios/Runner.xcodeproj/project.pbxproj
     dart run flutter_native_splash:create
     git checkout ios/Runner/Info.plist
@@ -114,6 +114,30 @@ def clear(size): return Image.new('RGBA', (size, size), (0, 0, 0, 0))
 
 # Launcher / iOS icon: opaque, mark ~70 % of the height.
 place(solid(1024), mark, 700, glow_img=glow).convert('RGB').save(OUT + '/app_icon.png')
+# macOS icon: Apple's grid, an 824 px rounded square centred on a transparent 1024 canvas with a soft drop shadow.
+# The opaque square above would sit on a grey plate on recent macOS. The rounded square is a superellipse
+# (n = 5, close to Apple's continuous corners), drawn at 4x for smooth edges.
+def squircle(size, n=5.0, ss=4):
+    t = (np.arange(size * ss) + 0.5) / (size * ss) * 2 - 1
+    m = (np.abs(t)[None, :] ** n + np.abs(t)[:, None] ** n) <= 1
+    return Image.fromarray((m * 255).astype(np.uint8)).resize((size, size), Image.LANCZOS)
+
+BODY, OFF = 824, 100
+tile = place(solid(BODY), mark, round(700 * BODY / 1024), glow_img=glow)
+shape = squircle(BODY)
+shadow = Image.new('L', (1024, 1024), 0)
+shadow.paste(shape.point(lambda v: v * 0.35), (OFF, OFF + 10))
+mac = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+mac.putalpha(shadow.filter(ImageFilter.GaussianBlur(14)))
+tile.putalpha(shape)
+mac.alpha_composite(tile, (OFF, OFF))
+mac.save(OUT + '/app_icon_macos.png')
+# Windows icon (taskbar, title bar, Explorer, MSIX tile fallback): the opaque icon at every size Windows asks for, so
+# small sizes are resampled from 1024 rather than scaled down from one 256 px image at runtime.
+Image.open(OUT + '/app_icon.png').save(
+    os.path.join(ROOT, 'windows', 'runner', 'resources', 'app_icon.ico'),
+    sizes=[(s, s) for s in (16, 20, 24, 32, 40, 48, 64, 128, 256)],
+)
 # Adaptive foreground: transparent, inside the 66 % safe zone (≈ 600 px tall at 1024).
 place(clear(1024), mark, 560, glow_img=glow, glow_strength=0.4).save(OUT + '/app_icon_foreground.png')
 # Monochrome (themed icons): white where the mark is bright (rim, helmet, bolt).

@@ -4,6 +4,9 @@
 #   # build setting (ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS) to an invalid value
 # Android: adaptive icon (background colour + foreground in the 66 % safe zone)
 # with a monochrome layer for Android 13 themed icons. iOS: opaque app_icon.png.
+# macOS: app_icon_macos.png (Apple's 824 px rounded square on a transparent canvas, so it is not put on a
+# grey plate). Windows is not generated here (the tool writes a single 256 px image): tool/branding/generate_branding.py
+# writes windows/runner/resources/app_icon.ico with every size from 16 to 256 px.
 flutter_launcher_icons:
   android: "ic_launcher"
   min_sdk_android: 26
@@ -17,3 +20,6 @@ flutter_launcher_icons:
   image_path_ios: "assets/branding/app_icon.png"
   remove_alpha_ios: true
   background_color_ios: "#0A1020"
+  macos:
+    generate: true
+    image_path: "assets/branding/app_icon_macos.png"

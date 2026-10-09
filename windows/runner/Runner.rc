@@ -95,7 +95,7 @@ BEGIN
             VALUE "InternalName", "knight_rise" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.ragheb. All rights reserved." "\0"
             VALUE "OriginalFilename", "knight_rise.exe" "\0"
-            VALUE "ProductName", "knight_rise" "\0"
+            VALUE "ProductName", "Knight Rise" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
