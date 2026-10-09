@@ -2,20 +2,22 @@
 
 Run on the matrix below. Tick each line; note the machine and build type for any failure.
 Automated coverage: 1055 tests (`flutter test`), including shell, tray, shortcut, multi-pane, Device health and
-accessibility suites; CI (`.github/workflows/ci.yaml`, job `desktop`) analyzes and runs the suite on macOS and Windows
-and builds the release artifacts. Pixel goldens run locally only (`flutter test --tags golden`).
+accessibility suites; the on-demand **Desktop release** workflow (`.github/workflows/release-desktop.yaml`) analyzes
+and runs the suite on macOS and Windows (unless `skip_tests`) and builds the release artifacts. Pixel goldens run locally only (`flutter test --tags golden`).
 
 ## 0. Matrix and setup
 
 | Platform | Versions | Build types |
 | --- | --- | --- |
-| macOS | 13, 14, 15 on Apple Silicon; one Intel Mac if available | Release `.app` (`tool/build_macos_release.sh`) |
+| macOS | 13, 14, 15 on Apple Silicon; one Intel Mac if available | Release `.app` (`tool/build_macos_release.sh`) and the DMG |
 | Windows | 10 22H2 and 11 | Unpackaged (`flutter build windows --release`, run `knight_rise.exe`) and MSIX sideload |
 
 - macOS: `bash tool/build_macos_release.sh` (must print only PASS), then open `build/macos/Build/Products/Release/knight_rise.app`.
   An unsigned build may need right-click > Open the first time.
 - Windows unpackaged: `flutter build windows --release`; run `build\windows\x64\runner\Release\knight_rise.exe`.
-- Windows MSIX: download the `knight-rise-windows-msix` CI artifact (or run `dart run msix:create` locally), then trust the
+- macOS DMG: `bash tool/package_macos_dmg.sh` or the `knight-rise-macos-…` artifact; open it, drag Knight Rise to
+  Applications, and check the Dock and Finder show the Knight Rise icon and name.
+- Windows MSIX: download the `knight-rise-windows-…` artifact of a Desktop release run (or run `dart run msix:create` locally), then trust the
   test certificate once: open `knight_rise_test.cer` > Install Certificate > Local Machine > Place in **Trusted People**.
   Double-click `knight_rise.msix` to install. Uninstall any unpackaged copy first and remove its Run entry
   (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run\KnightRise`).

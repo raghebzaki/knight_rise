@@ -1,0 +1,189 @@
+name: Desktop release
+
+# On-demand desktop builds: Actions › Desktop release › Run workflow. Nothing here runs on push or pull request.
+# Version inputs left blank fall back to pubspec.yaml (`version: <name>+<number>`). The macOS build is unsigned
+# (ad-hoc) and the MSIX uses msix's test certificate; production signing is manual (docs/RELEASE.md > Desktop).
+run-name: Desktop release ${{ inputs.version_name || 'pubspec' }}+${{ inputs.build_number || 'pubspec' }} (${{ inputs.platform }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platforms to build
+        type: choice
+        options: [all, macos, windows]
+        default: all
+      version_name:
+        description: Version name, e.g. 1.2.0 (blank = pubspec.yaml)
+        type: string
+        required: false
+        default: ''
+      build_number:
+        description: Build number, e.g. 7 (blank = pubspec.yaml)
+        type: string
+        required: false
+        default: ''
+      skip_tests:
+        description: Skip flutter test before building
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Resolves and validates the version once, so both platforms build the same one. Inputs reach scripts through env,
+  # never inline in `run:`, so a crafted input cannot inject shell.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.resolve.outputs.name }}
+      number: ${{ steps.resolve.outputs.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: resolve
+        env:
+          INPUT_NAME: ${{ inputs.version_name }}
+          INPUT_NUMBER: ${{ inputs.build_number }}
+        run: |
+          pubspec="$(sed -n 's/^version: *\([^ ]*\).*/\1/p' pubspec.yaml | head -n 1)"
+          name="${INPUT_NAME:-${pubspec%%+*}}"
+          number="${INPUT_NUMBER:-${pubspec#*+}}"
+          # Flutter needs x.y.z and an integer build number; MSIX caps each version part at 65535.
+          if ! [[ "$name" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::version_name must look like 1.2.0, without leading zeros (got '$name')"; exit 1
+          fi
+          if ! [[ "$number" =~ ^[0-9]+$ ]]; then
+            echo "::error::build_number must be a whole number (got '$number')"; exit 1
+          fi
+          IFS=. read -r major minor patch <<<"$name"
+          for part in "$major" "$minor" "$patch"; do
+            if ((10#$part > 65535)); then echo "::error::version parts must be at most 65535 (MSIX)"; exit 1; fi
+          done
+          echo "name=$name" >>"$GITHUB_OUTPUT"
+          echo "number=$number" >>"$GITHUB_OUTPUT"
+          echo "### Knight Rise $name+$number" >>"$GITHUB_STEP_SUMMARY"
+
+  macos:
+    needs: version
+    if: inputs.platform == 'all' || inputs.platform == 'macos'
+    runs-on: macos-latest
+    env:
+      BUILD_NAME: ${{ needs.version.outputs.name }}
+      BUILD_NUMBER: ${{ needs.version.outputs.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        if: ${{ !inputs.skip_tests }}
+        # Pixel goldens are macOS-rendered on a developer machine (dart_test.yaml); run them locally.
+        run: flutter test --exclude-tags golden
+
+      # Release build, then tool/verify_macos_release.sh (sandbox entitlements, Info.plist, tray icon, EN/AR) and a
+      # zip of the .app in build/dist/.
+      - name: Build and verify macOS release
+        run: bash tool/build_macos_release.sh --build-name "$BUILD_NAME" --build-number "$BUILD_NUMBER"
+
+      # No Finder on a headless runner: the DMG gets Finder's default icon view instead of the arranged window.
+      - name: Package DMG
+        run: bash tool/package_macos_dmg.sh --no-layout
+
+      - name: Upload macOS release
+        uses: actions/upload-artifact@v4
+        with:
+          name: knight-rise-macos-${{ env.BUILD_NAME }}+${{ env.BUILD_NUMBER }}
+          path: |
+            build/dist/Knight_Rise_v*.dmg
+            build/dist/knight_rise-macos-*.zip
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    if: inputs.platform == 'all' || inputs.platform == 'windows'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      BUILD_NAME: ${{ needs.version.outputs.name }}
+      BUILD_NUMBER: ${{ needs.version.outputs.number }}
+      RELEASE_DIR: build/windows/x64/runner/Release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        if: ${{ !inputs.skip_tests }}
+        # The Windows leg is where path-separator or line-ending assumptions show up. Pixel goldens stay local.
+        run: flutter test --exclude-tags golden
+
+      - name: Build Windows release
+        run: flutter build windows --release --dart-define=FLAVOR=prod --build-name "$BUILD_NAME" --build-number "$BUILD_NUMBER"
+
+      # Portable build (unpackaged: launch at login uses the Run key), zipped before msix adds its files to the folder.
+      - name: Zip portable build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build/dist | Out-Null
+          Compress-Archive -Path "$env:RELEASE_DIR/*" -DestinationPath "build/dist/knight_rise-windows-$env:BUILD_NAME.zip" -Force
+
+      # Signed with msix's built-in test certificate: works headless and needs no secrets. Testers trust the exported
+      # .cer once (docs/QA_DESKTOP.md). MSIX versions are a.b.c.d; the last part stays 0 for the Microsoft Store.
+      - name: Package MSIX (test certificate)
+        run: dart run msix:create --build-windows false --install-certificate false --version "$BUILD_NAME.0"
+
+      - name: Export the test certificate's public part
+        shell: pwsh
+        run: |
+          $msix = "$env:RELEASE_DIR/knight_rise.msix"
+          $signature = Get-AuthenticodeSignature $msix
+          Write-Host "Signature status: $($signature.Status), signer: $($signature.SignerCertificate.Subject)"
+          Export-Certificate -Cert $signature.SignerCertificate -FilePath 'build/dist/knight_rise_test.cer'
+          Copy-Item $msix "build/dist/knight_rise-$env:BUILD_NAME.msix"
+
+      - name: Upload Windows release
+        uses: actions/upload-artifact@v4
+        with:
+          name: knight-rise-windows-${{ env.BUILD_NAME }}+${{ env.BUILD_NUMBER }}
+          path: |
+            build/dist/knight_rise-*.msix
+            build/dist/knight_rise_test.cer
+            build/dist/knight_rise-windows-*.zip
+          if-no-files-found: error

@@ -112,7 +112,8 @@ The policy lives in `site/` (only that folder is published, not `docs/`).
 1. In `site/privacy/index.html`, replace `{{CONTACT_EMAIL}}` and
    `{{GITHUB_USER}}`.
 2. Repo › Settings › Pages › Build and deployment › Source: **GitHub Actions**.
-3. Push to `main`; `.github/workflows/pages.yml` publishes `site/`.
+3. Actions › Pages › Run workflow; `.github/workflows/pages.yml` publishes `site/`. It runs on demand only (its push
+   trigger is commented out), so run it again after every change to `site/`.
 4. The policy URL is `https://{{GITHUB_USER}}.github.io/knight_rise/privacy/`
    — use it in both store listings and in `docs/STORE_LISTING.md`.
 
@@ -134,21 +135,37 @@ and confirm reminders still fire.
 
 ## Desktop (macOS and Windows)
 
-CI job `desktop` (`.github/workflows/ci.yaml`) runs analyze and tests on `macos-latest` and `windows-latest`, builds the
-release and uploads artifacts: `knight-rise-macos` (`knight_rise-macos-<version>.zip`) and `knight-rise-windows-msix`
-(`knight_rise.msix` plus `knight_rise_test.cer`). Both are for testers; production signing is manual and uses no
-secrets from the repository.
+All workflows run on demand only: the push and pull request triggers in `ci.yaml` and `pages.yml` are commented out.
+Desktop builds come from **Actions › Desktop release › Run workflow** (`.github/workflows/release-desktop.yaml`):
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `platform` | `all` | `all`, `macos` or `windows` |
+| `version_name` | blank | `--build-name` (e.g. `1.2.0`, no leading zeros); blank uses `pubspec.yaml` |
+| `build_number` | blank | `--build-number` (whole number); blank uses `pubspec.yaml` |
+| `skip_tests` | off | Off: `flutter test --exclude-tags golden` runs before the build. `flutter analyze` always runs |
+
+The version is checked once and shared by both platforms; the MSIX gets `<version_name>.0`. Artifacts, for testers:
+`knight-rise-macos-<name>+<number>` (`Knight_Rise_v<name>.dmg` and `knight_rise-macos-<name>.zip`) and
+`knight-rise-windows-<name>+<number>` (`knight_rise-<name>.msix`, `knight_rise_test.cer` and the portable
+`knight_rise-windows-<name>.zip`). Production signing is manual and uses no secrets from the repository.
 
 ### macOS
 
 ```sh
 bash tool/build_macos_release.sh     # flutter build macos --release --dart-define=FLAVOR=prod, then the verifier
 bash tool/verify_macos_release.sh    # checks only: sandbox entitlements, no JIT/network, Info.plist, tray icon, EN/AR
+bash tool/package_macos_dmg.sh       # build/dist/Knight_Rise_v<version>.dmg: the app plus an /Applications link
 ```
+
+`build_macos_release.sh` passes extra arguments to `flutter build` (`--build-name 1.2.0 --build-number 7`).
+`package_macos_dmg.sh --out ~/Desktop/Knight_Rise_v1.0.dmg` writes elsewhere; it arranges the Finder window unless
+`--no-layout` (CI) is passed. The bundle stays `knight_rise.app` on disk and is staged into the DMG as `Knight Rise.app`;
+`CFBundleDisplayName` is `Knight Rise`.
 
 The verifier fails on any `allow-jit`, `network.client` or `network.server` entitlement (the app is offline); add one
 deliberately to `macos/Runner/Release.entitlements` and to the script if a plugin ever needs it. It then zips the app to
-`build/dist/knight_rise-macos-<version>.zip`.
+`build/dist/knight_rise-macos-<version>.zip`, named after the built version.
 
 Developer ID signing and notarization (manual):
 

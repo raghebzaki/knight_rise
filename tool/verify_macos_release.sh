@@ -12,6 +12,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 APP="${1:-build/macos/Build/Products/Release/knight_rise.app}"
 EXPECTED_BUNDLE_ID="com.ragheb.knightRise"
+EXPECTED_DISPLAY_NAME="Knight Rise"
 EXPECTED_MIN_OS="13.0"
 
 failures=0
@@ -56,6 +57,9 @@ done
 [[ "$(plist CFBundleIdentifier)" == "$EXPECTED_BUNDLE_ID" ]] &&
   pass "Info.plist: CFBundleIdentifier is $EXPECTED_BUNDLE_ID" ||
   fail "Info.plist: CFBundleIdentifier is $EXPECTED_BUNDLE_ID (got '$(plist CFBundleIdentifier)')"
+[[ "$(plist CFBundleDisplayName)" == "$EXPECTED_DISPLAY_NAME" ]] &&
+  pass "Info.plist: CFBundleDisplayName is $EXPECTED_DISPLAY_NAME" ||
+  fail "Info.plist: CFBundleDisplayName is $EXPECTED_DISPLAY_NAME (got '$(plist CFBundleDisplayName)')"
 
 # --- Bundled resources ------------------------------------------------------------------------------------------
 ASSETS="$APP/Contents/Frameworks/App.framework/Resources/flutter_assets"
@@ -87,7 +91,8 @@ if ((failures > 0)); then
   exit 1
 fi
 
-version="$(sed -n 's/^version: *\([0-9][0-9.]*\).*/\1/p' pubspec.yaml | head -n 1)"
+# The built version, so a `--build-name` override (the release workflow) names the zip correctly.
+version="$(plist CFBundleShortVersionString)"
 mkdir -p build/dist
 zip_path="build/dist/knight_rise-macos-${version}.zip"
 rm -f "$zip_path"

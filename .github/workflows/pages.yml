@@ -2,11 +2,13 @@ name: Pages
 
 # Publishes only site/ (the privacy policy) to GitHub Pages.
 # Enable once: Settings › Pages › Build and deployment › Source: GitHub Actions.
+# Manual only, like every workflow here: Actions › Pages › Run workflow after changing site/. Uncomment `push` to
+# publish automatically again.
 on:
-  push:
-    branches: [main]
-    paths: ['site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths: ['site/**', '.github/workflows/pages.yml']
 
 permissions:
   contents: read
