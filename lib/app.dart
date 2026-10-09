@@ -16,6 +16,7 @@ import 'package:knight_rise/features/scheduler/presentation/schedule_sync_servic
 import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
+import 'package:knight_rise/features/splash/presentation/splash_gate.dart';
 import 'package:knight_rise/l10n/app_locales.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
@@ -44,6 +45,7 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   /// Animated splash over the first route, once per cold start. Held here,
   /// above the [_scope] key, so a timezone change never replays it.
   late bool _showSplash = widget.showSplash;
+  late final SplashGate _splashGate = getIt<SplashGate>();
 
   /// Changing this recreates the BlocProviders (and so CycleBloc / ThemeCubit)
   /// after a timezone change, so they pick up the new `tz.Location`.
@@ -52,6 +54,8 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   @override
   void initState() {
     super.initState();
+    _splashGate.addListener(_onSplashGate);
+    if (_splashGate.dismissed) _showSplash = false;
     _lifecycle = AppLifecycleListener(
       onResume: () {
         unawaited(_sync.onResume());
@@ -77,8 +81,14 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
     }
   }
 
+  /// A deep link (toast tap) asked for the splash to give way.
+  void _onSplashGate() {
+    if (_splashGate.dismissed && _showSplash && mounted) setState(() => _showSplash = false);
+  }
+
   @override
   void dispose() {
+    _splashGate.removeListener(_onSplashGate);
     _lifecycle.dispose();
     unawaited(_tzSub?.cancel());
     unawaited(_permission.close());

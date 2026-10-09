@@ -25,6 +25,7 @@ dependencies:
   intl: ^0.20.3
   flutter_localizations:
     sdk: flutter
+  path: ^1.9.1
   path_provider: ^2.1.6
   flutter_timezone: ^5.1.1
   meta: ^1.19.0

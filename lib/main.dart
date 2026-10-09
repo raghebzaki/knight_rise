@@ -16,6 +16,7 @@ import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/handle_reminder_action.dart';
 import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
+import 'package:knight_rise/features/splash/presentation/splash_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,8 @@ final _openBreakDeduper = OpenBreakDeduper();
 
 void _openBreak(ReminderAction action) {
   if (!_openBreakDeduper.shouldOpen(action.notificationId)) return;
+  // A tap while the splash still plays goes straight to the break.
+  getIt<SplashGate>().dismiss();
   unawaited(getIt<GoRouter>().push(breakLocation(action.types)));
 }
 

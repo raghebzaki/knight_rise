@@ -1,5 +1,9 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/core/config/background_ids.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toast_codec.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toasts.dart';
 import 'package:knight_rise/features/notifications/data/in_process_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/due_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
@@ -8,9 +12,13 @@ import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_payload.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockDesktopToasts extends Mock implements DesktopToasts;
 
 void main() {
   late FixedClock clock;
+  late MockDesktopToasts toasts;
   late InProcessNotificationGateway gateway;
   final water = PlannedReminder(fireAt: DateTime.utc(2026, 10, 9, 9), types: const {RoutineType.hydration});
   final eyes = PlannedReminder(fireAt: DateTime.utc(2026, 10, 9, 10), types: const {RoutineType.eyeRest});
@@ -18,7 +26,9 @@ void main() {
   setUp(() {
     // Before every fixture's fire time unless a test advances it.
     clock = FixedClock(DateTime.utc(2026, 10, 9, 7));
-    gateway = InProcessNotificationGateway(clock);
+    toasts = MockDesktopToasts();
+    when(() => toasts.initialize(any())).thenAnswer((_) async {});
+    gateway = InProcessNotificationGateway(clock, toasts);
   });
 
   test('tracks scheduled reminders by their planner id', () async {
@@ -46,12 +56,49 @@ void main() {
     expect(await gateway.pendingIds(), isEmpty);
   });
 
-  test('desktop has no permission gates and no launch action', () async {
-    await gateway.initialize(onForegroundAction: (_) {});
-    expect(await gateway.requestPermission(), isTrue);
-    expect(await gateway.notificationsEnabled(), isTrue);
+  test('permissions and launch details come from the toast backend', () async {
+    when(() => toasts.requestPermission()).thenAnswer((_) async => false);
+    when(() => toasts.notificationsEnabled()).thenAnswer((_) async => false);
+    when(() => toasts.launchResponse()).thenAnswer((_) async => null);
+    expect(await gateway.requestPermission(), isFalse);
+    expect(await gateway.notificationsEnabled(), isFalse);
     expect(await gateway.canScheduleExact(), isTrue);
     expect(await gateway.launchAction(), isNull);
+
+    when(() => toasts.launchResponse()).thenAnswer(
+      (_) async => NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotification,
+        payload: encodeToastArgument('', ReminderPayload.of(water).encode()),
+      ),
+    );
+    final launch = await gateway.launchAction();
+    expect(launch?.kind, ReminderActionKind.open);
+    expect(launch?.types, water.types);
+  });
+
+  test('initialises the toast backend once and routes its responses to the latest callback', () async {
+    void Function(NotificationResponse)? onResponse;
+    when(() => toasts.initialize(any())).thenAnswer((i) async {
+      onResponse = i.positionalArguments.single as void Function(NotificationResponse);
+    });
+    final first = <ReminderAction>[];
+    final second = <ReminderAction>[];
+    await gateway.initialize(onForegroundAction: first.add);
+    await gateway.initialize(onForegroundAction: second.add);
+    verify(() => toasts.initialize(any())).called(1);
+
+    final payload = ReminderPayload.of(water).encode();
+    onResponse!(
+      NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotificationAction,
+        actionId: encodeToastArgument(NotificationActionIds.snooze, payload),
+        payload: encodeToastArgument(NotificationActionIds.snooze, payload),
+      ),
+    );
+    onResponse!(const NotificationResponse(notificationResponseType: NotificationResponseType.notificationDismissed));
+    expect(first, isEmpty);
+    expect(second.single.kind, ReminderActionKind.snooze);
+    expect(second.single.types, water.types);
   });
 
   group('due handling', () {

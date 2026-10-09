@@ -5,8 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/database/app_database.dart';
 import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toasts.dart';
 import 'package:knight_rise/features/notifications/data/in_process_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/data/local_notification_gateway.dart';
+import 'package:knight_rise/features/notifications/data/toast_reminder_presenter.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/reminder_presenter.dart';
 import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
@@ -56,7 +58,6 @@ void main() {
       expect(getIt<BackgroundScheduler>(), isA<DesktopBackgroundScheduler>());
       expect(getIt<NotificationGateway>(), isA<InProcessNotificationGateway>());
       expect(getIt.isRegistered<WorkmanagerAdapter>(), isFalse);
-      expect(getIt.isRegistered<FlutterLocalNotificationsPlugin>(), isFalse);
       expect(getIt.isRegistered<AppDatabase>(), isTrue);
     });
 
@@ -64,7 +65,9 @@ void main() {
       await configure(AppEnv.desktop);
       expect(getIt<DesktopHeartbeat>(), isNotNull);
       expect(getIt<DesktopAlarmClock>(), isNotNull);
-      expect(getIt<ReminderPresenter>(), isNotNull);
+      expect(getIt<ReminderPresenter>(), isA<ToastReminderPresenter>());
+      expect(getIt.isRegistered<DesktopToasts>(), isTrue);
+      expect(getIt.isRegistered<FlutterLocalNotificationsPlugin>(), isTrue);
       expect(identical(getIt<NotificationGateway>(), getIt<InProcessNotificationGateway>()), isTrue);
     });
 
@@ -73,6 +76,7 @@ void main() {
       expect(getIt.isRegistered<DesktopHeartbeat>(), isFalse);
       expect(getIt.isRegistered<DesktopAlarmClock>(), isFalse);
       expect(getIt.isRegistered<ReminderPresenter>(), isFalse);
+      expect(getIt.isRegistered<DesktopToasts>(), isFalse);
       expect(getIt.isRegistered<InProcessNotificationGateway>(), isFalse);
     });
 

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toasts.dart';
 import 'package:knight_rise/features/notifications/data/in_process_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/due_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
@@ -7,6 +8,7 @@ import 'package:knight_rise/features/notifications/domain/reminder_presenter.dar
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/desktop/desktop_alarm_clock.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
+import 'package:mocktail/mocktail.dart';
 
 class _RecordingPresenter implements ReminderPresenter {
   final List<DueReminder> shown = [];
@@ -30,7 +32,7 @@ void main() {
 
   setUp(() {
     final clock = FixedClock(now);
-    gateway = InProcessNotificationGateway(clock);
+    gateway = InProcessNotificationGateway(clock, _NoToasts());
     presenter = _RecordingPresenter();
     alarm = DesktopAlarmClock(gateway, presenter, clock);
   });
@@ -113,3 +115,5 @@ void main() {
     expect(await gateway.pendingIds(), isEmpty);
   });
 }
+
+class _NoToasts extends Mock implements DesktopToasts;

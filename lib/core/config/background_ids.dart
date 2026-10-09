@@ -41,3 +41,11 @@ abstract final class NotificationActionIds {
 /// Android drawable resource name (without extension) used as the notification
 /// small icon: `android/app/src/main/res/drawable/ic_stat_knight.xml`.
 const String androidNotificationIcon = 'ic_stat_knight';
+
+/// Windows AppUserModelID of the desktop app. Windows keys the toast activator
+/// and Action Center history on it: it must never change once shipped.
+const String kWindowsAppUserModelId = 'com.ragheb.KnightRise';
+
+/// COM activator GUID of the Windows toast backend. Like
+/// [kWindowsAppUserModelId], it must never change once shipped.
+const String kWindowsToastActivatorGuid = '108AF7F5-1A25-4D8E-A8F4-83AF0606E992';

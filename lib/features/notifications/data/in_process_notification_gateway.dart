@@ -1,4 +1,7 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:knight_rise/core/clock/clock.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toast_codec.dart';
+import 'package:knight_rise/features/notifications/data/desktop_toasts.dart';
 import 'package:knight_rise/features/notifications/domain/due_reminder.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/notifications/domain/pending_reminder.dart';
@@ -26,16 +29,26 @@ import 'package:knight_rise/features/scheduler/domain/entities/planner_models.da
 /// Registered (as both this class and [NotificationGateway], the same
 /// instance) by the desktop module in `notifications_module.dart`.
 class InProcessNotificationGateway implements NotificationGateway {
-  InProcessNotificationGateway(this._clock);
+  InProcessNotificationGateway(this._clock, this._toasts);
 
   final Clock _clock;
+  final DesktopToasts _toasts;
+  Future<void>? _initFuture;
   final Map<int, PlannedReminder> _pending = {};
   void Function(ReminderAction action)? _onAction;
 
-  /// Stores the callback that [dispatchAction] forwards to (latest wins).
+  /// Stores the callback that [dispatchAction] forwards to (latest wins) and
+  /// starts the toast backend once.
   @override
-  Future<void> initialize({required void Function(ReminderAction action) onForegroundAction}) async =>
-      _onAction = onForegroundAction;
+  Future<void> initialize({required void Function(ReminderAction action) onForegroundAction}) {
+    _onAction = onForegroundAction;
+    return _initFuture ??= _toasts.initialize(_onToastResponse);
+  }
+
+  void _onToastResponse(NotificationResponse response) {
+    final action = reminderActionFromDesktopResponse(response);
+    if (action != null) dispatchAction(action);
+  }
 
   /// Forwards a user action (toast Done / Snooze / body click) to the app.
   void dispatchAction(ReminderAction action) => _onAction?.call(action);
@@ -107,10 +120,10 @@ class InProcessNotificationGateway implements NotificationGateway {
   Future<void> clearShieldStatus() async {}
 
   @override
-  Future<bool> requestPermission() async => true;
+  Future<bool> requestPermission() => _toasts.requestPermission();
 
   @override
-  Future<bool> notificationsEnabled() async => true;
+  Future<bool> notificationsEnabled() => _toasts.notificationsEnabled();
 
   /// Due times come from the app's own clock, so they are always exact.
   @override
@@ -120,5 +133,8 @@ class InProcessNotificationGateway implements NotificationGateway {
   Future<void> requestExactAlarmPermission() async {}
 
   @override
-  Future<ReminderAction?> launchAction() async => null;
+  Future<ReminderAction?> launchAction() async {
+    final response = await _toasts.launchResponse();
+    return response == null ? null : reminderActionFromDesktopResponse(response);
+  }
 }
