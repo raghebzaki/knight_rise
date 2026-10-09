@@ -36,6 +36,7 @@ class DriftSettingsRepository implements SettingsRepository {
           lastRetentionRunAt: Value(s.lastRetentionRunAt),
           hapticsEnabled: Value(s.hapticsEnabled),
           rankCelebratedOn: Value(s.rankCelebratedOn == null ? null : dateKey(s.rankCelebratedOn!)),
+          localeCode: Value(s.localeCode),
         ),
       );
 
@@ -68,5 +69,6 @@ class DriftSettingsRepository implements SettingsRepository {
           lastRetentionRunAt: r.lastRetentionRunAt,
           hapticsEnabled: r.hapticsEnabled,
           rankCelebratedOn: r.rankCelebratedOn == null ? null : parseDateKey(r.rankCelebratedOn!),
+          localeCode: r.localeCode,
         );
 }

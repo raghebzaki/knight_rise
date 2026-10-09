@@ -10,6 +10,7 @@ import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v5.dart' as v5;
+import 'generated/schema_v6.dart' as v6;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -563,6 +564,53 @@ void main() {
               done: 4,
               target: 6,
               enabled: 1,
+            ),
+          ]);
+        },
+      );
+    },
+  );
+
+  test(
+    'migration from v5 to v6 keeps settings; the language follows the device',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 5,
+        newVersion: 6,
+        createOld: v5.DatabaseAtV5.new,
+        createNew: v6.DatabaseAtV6.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch.insertAll(oldDb.appSettings, [
+            const v5.AppSettingsData(
+              id: 1,
+              themeVariant: 'amoled',
+              precisionTiming: 0,
+              waterPerTapMl: 300,
+              timezoneId: 'Asia/Riyadh',
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 0,
+              streakThresholdPercent: 90,
+              lastRetentionRunAt: 1760000000,
+              hapticsEnabled: 0,
+              rankCelebratedOn: '2026-10-01',
+            ),
+          ]);
+        },
+        validateItems: (newDb) async {
+          expect(await newDb.select(newDb.appSettings).get(), [
+            const v6.AppSettingsData(
+              id: 1,
+              themeVariant: 'amoled',
+              precisionTiming: 0,
+              waterPerTapMl: 300,
+              timezoneId: 'Asia/Riyadh',
+              onboardingCompleted: 1,
+              shieldRecoverOnExit: 0,
+              streakThresholdPercent: 90,
+              lastRetentionRunAt: 1760000000,
+              hapticsEnabled: 0,
+              rankCelebratedOn: '2026-10-01',
             ),
           ]);
         },

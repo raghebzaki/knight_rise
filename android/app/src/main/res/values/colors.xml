@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash / launch window: #0A0F1D, the same as the in-app animated splash. -->
-    <color name="ic_launcher_background">#0A0F1D</color>
-    <color name="splash_background">#FF0A0F1D</color>
+    <!-- Splash / launch window: #0A1020, the same as the in-app animated splash. -->
+    <color name="ic_launcher_background">#0A1020</color>
+    <color name="splash_background">#FF0A1020</color>
 </resources>

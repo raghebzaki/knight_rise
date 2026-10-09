@@ -22,6 +22,7 @@ import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/features/shield/domain/usecases/shield_usecases.dart';
 import 'package:knight_rise/features/shield/presentation/shield_cubit.dart';
 import 'package:knight_rise/features/work_hours/domain/usecases/day_override_usecases.dart';
+import 'package:knight_rise/l10n/app_locales.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 import 'fakes.dart';
@@ -33,14 +34,16 @@ import 'tz.dart';
 /// (Mon 12 Oct 2026, 11:00 Cairo, a 6-day streak, some progress).
 enum Screen { today, questLog, history, settings }
 
-/// Pumps [screen] at a phone size (390 × 844) with [textScale], [palette]
-/// and [direction]. Returns a teardown that unmounts it.
+/// Pumps [screen] at a phone size (390 × 844) with [textScale], [palette],
+/// [locale] and [direction] (a forced direction over the locale's own).
+/// Returns a teardown that unmounts it.
 Future<void> pumpScreen(
   WidgetTester tester,
   Screen screen, {
   double textScale = 1,
   KnightPalette palette = KnightPalette.midnight,
-  TextDirection direction = TextDirection.ltr,
+  TextDirection? direction,
+  Locale locale = const Locale('en'),
 }) async {
   tester.view.physicalSize = const Size(1170, 2532);
   tester.view.devicePixelRatio = 3;
@@ -122,12 +125,13 @@ Future<void> pumpScreen(
           ),
         ],
         child: MaterialApp(
-          theme: KnightTheme.build(palette),
+          theme: KnightTheme.build(palette, joinedScript: KnightTheme.isJoinedScript(locale)),
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+          supportedLocales: kSupportedLocales,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
-            child: Directionality(textDirection: direction, child: child!),
+            child: direction == null ? child! : Directionality(textDirection: direction, child: child!),
           ),
           home: page(),
         ),

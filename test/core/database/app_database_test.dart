@@ -121,6 +121,16 @@ void main() {
     expect((await db.select(db.appSettingsTable).getSingle()).rankCelebratedOn, '2026-10-12');
   });
 
+  test('localeCode defaults to null (follow the device), round-trips and can be cleared', () async {
+    final settings = DriftSettingsRepository(db);
+    expect((await settings.get()).localeCode, isNull);
+    await settings.save((await settings.get()).copyWith(localeCode: 'ar'));
+    expect((await settings.get()).localeCode, 'ar');
+    expect((await db.select(db.appSettingsTable).getSingle()).localeCode, 'ar');
+    await settings.save((await settings.get()).copyWith(localeCode: null));
+    expect((await settings.get()).localeCode, isNull);
+  });
+
   test('events are filtered by time and keep every field', () async {
     final repo = DriftReminderEventRepository(db);
     final day = DateTime(2026, 10, 5);

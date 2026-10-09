@@ -56,10 +56,10 @@ class KnightPalette {
   final Color stretch;
   final Color eyeRest;
 
-  /// Deep midnight navy with steel borders. The default.
-  /// Native splash and in-app animated splash background (from the logo
-  /// artwork; also the Android adaptive-icon background).
-  static const Color splashBackground = Color(0xFF0A0F1D);
+  /// Native splash and in-app animated splash background (also the Android
+  /// adaptive-icon background). Equal to [midnight]'s `background`, so the
+  /// splash hands off to the first route with no colour step.
+  static const Color splashBackground = Color(0xFF0A1020);
 
   /// "KNIGHT RISE" wordmark gradient on the splash, top to bottom (from the logo).
   static const List<Color> splashWordmark = [Color(0xFFF2F7FF), Color(0xFF8CC4FF)];
@@ -67,6 +67,7 @@ class KnightPalette {
   /// Cyan of the lightning crest's glow on the splash.
   static const Color splashCrestGlow = Color(0xFF33D6FF);
 
+  /// Deep midnight navy with steel borders. The default.
   static const midnight = KnightPalette(
     variant: ThemeVariant.midnight,
     primary: Color(0xFF00E5FF),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
+import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/settings_page.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
@@ -26,19 +27,26 @@ void main() {
 
   Future<void> pumpSettings(WidgetTester tester) async {
     final themeCubit = ThemeCubit(settings);
+    final localeCubit = LocaleCubit(settings);
     final settingsCubit = SettingsCubit(settings, work);
     addTearDown(themeCubit.close);
+    addTearDown(localeCubit.close);
     addTearDown(settingsCubit.close);
     addTearDown(health.cubit.close);
+    await localeCubit.load();
     useTallView(tester);
     await tester.pumpWidget(
       BlocProvider.value(
         value: themeCubit,
-        child: themedApp(SettingsPage(cubit: settingsCubit, healthCubit: health.cubit)),
+        child: localizedApp(localeCubit, SettingsPage(cubit: settingsCubit, healthCubit: health.cubit)),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  SegmentedButton<Locale> languageSelector(WidgetTester tester) => tester.widget<SegmentedButton<Locale>>(
+    find.descendant(of: find.byKey(const Key('languageRow')), matching: find.byKey(const Key('languageSelector'))),
+  );
 
   testWidgets('shows groups, work-hours summary, device health row and version', (tester) async {
     await pumpSettings(tester);
@@ -58,6 +66,43 @@ void main() {
     await tester.tap(find.text('Midnight'));
     await tester.pumpAndSettle();
     expect(settings.current.themeVariant, ThemeVariant.midnight);
+  });
+
+  testWidgets('language row: English is in use on an English device', (tester) async {
+    await pumpSettings(tester);
+    expect(find.text('LANGUAGE'), findsOneWidget);
+    expect(languageSelector(tester).selected, {const Locale('en')});
+    expect(directionAt(tester, find.text('Settings')), TextDirection.ltr);
+  });
+
+  testWidgets('language row switches to العربية: Arabic copy, RTL, persisted', (tester) async {
+    await pumpSettings(tester);
+    await tester.tap(find.text('العربية'));
+    await tester.pumpAndSettle();
+
+    expect(settings.current.localeCode, 'ar');
+    expect(find.text('الإعدادات'), findsOneWidget, reason: 'Settings, in Arabic');
+    expect(find.text('Settings'), findsNothing);
+    expect(find.text('اللغة'), findsOneWidget, reason: 'the Language row, in Arabic');
+    expect(directionAt(tester, find.text('الإعدادات')), TextDirection.rtl);
+    expect(languageSelector(tester).selected, {const Locale('ar')});
+    expect(find.text('English'), findsOneWidget, reason: 'the way back stays readable');
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(settings.current.localeCode, 'en');
+    expect(find.text('Settings'), findsOneWidget);
+    expect(directionAt(tester, find.text('Settings')), TextDirection.ltr);
+  });
+
+  testWidgets('language switches keep the other settings', (tester) async {
+    await settings.save(settings.current.copyWith(streakThresholdPercent: 85, hapticsEnabled: false));
+    await pumpSettings(tester);
+    await tester.tap(find.text('العربية'));
+    await tester.pumpAndSettle();
+    expect(settings.current.streakThresholdPercent, 85);
+    expect(settings.current.hapticsEnabled, isFalse);
   });
 
   testWidgets('recovery switch saves shieldRecoverOnExit', (tester) async {

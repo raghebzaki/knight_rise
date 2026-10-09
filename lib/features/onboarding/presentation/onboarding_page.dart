@@ -12,6 +12,7 @@ import 'package:knight_rise/features/cycle/presentation/widgets/routine_presenta
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_cubit.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
+import 'package:knight_rise/features/settings/presentation/widgets/language_selector.dart';
 import 'package:knight_rise/features/work_hours/domain/work_schedule_validation.dart';
 import 'package:knight_rise/features/work_hours/domain/work_week.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_format.dart';
@@ -226,7 +227,7 @@ class _Heading extends StatelessWidget {
   }
 }
 
-// ---- Step 1: welcome -------------------------------------------------------
+// ---- Step 1: welcome (and language) ----------------------------------------
 
 class _WelcomeStep extends StatelessWidget {
   const _WelcomeStep();
@@ -238,6 +239,20 @@ class _WelcomeStep extends StatelessWidget {
     final tokens = context.knight;
     return Column(
       children: [
+        // First thing on screen, so the rest of the flow reads in the chosen
+        // language (and direction) from here on.
+        Semantics(
+          container: true,
+          label: l.language,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.translate, size: 20, color: tokens.textMuted),
+              const SizedBox(width: KnightSpacing.sm),
+              const LanguageSelector(),
+            ],
+          ),
+        ),
         const SizedBox(height: KnightSpacing.lg),
         KnightRing(
           size: 160,
@@ -250,6 +265,7 @@ class _WelcomeStep extends StatelessWidget {
           child: Text(
             l.onboardingWelcomeTitle,
             textAlign: TextAlign.center,
+            // The Latin brand wordmark in every language, so the tracking stays.
             style: theme.textTheme.headlineLarge?.copyWith(letterSpacing: 4),
           ),
         ),

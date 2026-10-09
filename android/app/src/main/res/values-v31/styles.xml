@@ -8,7 +8,7 @@
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
-        <item name="android:windowSplashScreenBackground">#0A0F1D</item>
+        <item name="android:windowSplashScreenBackground">#0A1020</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/android12splash</item>
     </style>
     <!-- Behind Flutter's first frame: Midnight, so there is no white flash. -->

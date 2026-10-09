@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
+import 'package:knight_rise/core/theme/knight_theme.dart';
+import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 /// Total time on screen before [AnimatedSplash.onFinished] fires.
@@ -185,7 +187,7 @@ class _AnimatedSplashState extends State<AnimatedSplash> with SingleTickerProvid
                     l.tagline.toUpperCase(),
                     textAlign: TextAlign.center,
                     style: text.labelLarge?.copyWith(
-                      letterSpacing: 1.6,
+                      letterSpacing: KnightTheme.tracking(context, 1.6),
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -209,6 +211,12 @@ class SplashOverlay extends StatelessWidget {
   final bool show;
   final VoidCallback onFinished;
   final Widget child;
+
+  /// Whether the splash plays on a cold start that [launch] (the notification
+  /// tap that opened the app, if any) caused. A notification launch is an
+  /// instant-action context: the user came for that reminder, so the app
+  /// opens straight to it.
+  static bool playsOnLaunch(ReminderAction? launch) => launch == null;
 
   @override
   Widget build(BuildContext context) {

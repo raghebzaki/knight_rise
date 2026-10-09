@@ -98,7 +98,7 @@ flutter test --tags golden --update-goldens          # refresh the splash golden
 ```
 
 Then check: `values*/styles.xml` keep `NormalTheme`'s `windowBackground` at
-`@color/splash_background` (`#0A0F1D`, no white flash), and
+`@color/splash_background` (`#0A1020`, no white flash), and
 `mipmap-anydpi-v26/ic_launcher.xml` uses `android:inset="0%"`. The dev flavor
 keeps its amber icon background through `android/app/src/dev/res/values/colors.xml`.
 

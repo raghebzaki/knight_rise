@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,15 +7,19 @@ import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/router/app_router.dart';
+import 'package:knight_rise/core/router/break_location.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
 import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
+import 'package:knight_rise/features/cycle/presentation/pages/break_page.dart';
 import 'package:knight_rise/features/cycle/presentation/pages/home_page.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
+import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_cubit.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_gate.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_page.dart';
+import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
@@ -69,13 +75,15 @@ void main() {
     return getIt.reset();
   });
 
-  Future<GoRouter> launch(WidgetTester tester) async {
+  /// A cold start, as in `main.dart`: [notification] is the tap that launched
+  /// the app, if any.
+  Future<GoRouter> launch(WidgetTester tester, {ReminderAction? notification}) async {
     useTallView(tester);
     await gate.load();
     final clock = getIt<Clock>();
     final router = buildRouter(gate: gate);
     addTearDown(router.dispose);
-    var showSplash = true;
+    var showSplash = SplashOverlay.playsOnLaunch(notification);
     await tester.pumpWidget(
       RepositoryProvider<Clock>.value(
         value: clock,
@@ -116,6 +124,7 @@ void main() {
         ),
       ),
     );
+    if (notification != null) unawaited(router.push(breakLocation(notification.types)));
     await tester.pump();
     return router;
   }
@@ -148,6 +157,39 @@ void main() {
     expect(find.byType(AnimatedSplash), findsNothing);
     expect(find.byType(OnboardingPage), findsOneWidget);
     expect(path(router), '/onboarding');
+  });
+
+  test('only a plain launch plays the splash; any notification launch skips it', () {
+    expect(SplashOverlay.playsOnLaunch(null), isTrue);
+    for (final kind in ReminderActionKind.values) {
+      final action = ReminderAction(
+        kind: kind,
+        types: const {RoutineType.hydration},
+        scheduledAt: DateTime.utc(2026, 10, 5, 7),
+        notificationId: 42,
+      );
+      expect(SplashOverlay.playsOnLaunch(action), isFalse, reason: kind.name);
+    }
+  });
+
+  testWidgets('notification deep link: no splash, the break screen is on screen at once', (tester) async {
+    await settings.save(settings.current.copyWith(onboardingCompleted: true));
+    await launch(
+      tester,
+      notification: ReminderAction(
+        kind: ReminderActionKind.open,
+        types: const {RoutineType.eyeRest},
+        scheduledAt: DateTime.utc(2026, 10, 5, 7),
+        notificationId: 7,
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(AnimatedSplash), findsNothing, reason: 'not even for a frame');
+    expect(find.byType(BreakPage), findsOneWidget);
+
+    await tester.pump(kSplashDuration + kSplashFadeOut);
+    expect(find.byType(AnimatedSplash), findsNothing, reason: 'and never later');
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('the splash plays once: later navigation never brings it back', (tester) async {

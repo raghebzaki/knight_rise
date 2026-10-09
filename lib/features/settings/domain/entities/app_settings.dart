@@ -35,5 +35,9 @@ abstract class AppSettings with _$AppSettings {
 
     /// Local date of the last rank-up celebration (date-only).
     DateTime? rankCelebratedOn,
+
+    /// Chosen app language code (`en` | `ar`); null follows the device
+    /// language (English when it is not supported).
+    String? localeCode,
   }) = _AppSettings;
 }

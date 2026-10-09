@@ -74,7 +74,7 @@ alpha = np.maximum(body_alpha, bolt_alpha)
 # --- 2. Generate the PNGs ----------------------------------------------
 rgb = c
 bolt = bolt_zone & (luma > 90)
-BG = (0x0A, 0x0F, 0x1D)
+BG = (0x0A, 0x10, 0x20)  # KnightPalette.midnight.background
 CYAN = np.array([0x33, 0xD6, 0xFF], np.float32)
 
 ys, xs = np.nonzero(alpha > 0.02)

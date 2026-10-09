@@ -3,7 +3,7 @@
 All app branding comes from one source: `knight_rise_logo.jpeg` (a mockup
 photo of the logo over a desk scene). The shield is **extracted** from it, not
 cropped, by `tool/branding/generate_branding.py` (see its header for the
-method and how to run it). Background colour: `#0A0F1D`.
+method and how to run it). Background colour: `#0A1020`.
 
 | File | Size | Used for |
 | --- | --- | --- |

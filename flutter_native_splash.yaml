@@ -1,13 +1,13 @@
 # Native splash (shown before Flutter draws), generated with:
 #   dart run flutter_native_splash:create
-# Same #0A0F1D as the in-app AnimatedSplash, so the hand-off is seamless.
+# Same #0A1020 as the in-app AnimatedSplash, so the hand-off is seamless.
 flutter_native_splash:
-  color: "#0A0F1D"
+  color: "#0A1020"
   image: assets/branding/splash_center.png
   android_12:
     # Android 12+ SplashScreen API: the shield sits inside the central circle.
     image: assets/branding/splash_center_android12.png
-    color: "#0A0F1D"
+    color: "#0A1020"
   android: true
   ios: true
   web: false

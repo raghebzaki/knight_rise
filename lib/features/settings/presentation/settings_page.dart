@@ -10,12 +10,14 @@ import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
+import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
+import 'package:knight_rise/features/settings/presentation/widgets/language_selector.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_format.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
-/// Settings hub. Needs a [ThemeCubit] above it; the [SettingsCubit] and the
+/// Settings hub. Needs a [ThemeCubit] and a [LocaleCubit] above it; the [SettingsCubit] and the
 /// [DeviceHealthCubit] (for the Device health summary) are resolved from DI
 /// unless given (tests).
 class SettingsPage extends StatefulWidget {
@@ -98,6 +100,16 @@ class _SettingsView extends StatelessWidget {
                     subtitle: Text(l.settingsHapticsSubtitle),
                     value: state.settings.hapticsEnabled,
                     onChanged: (v) => cubit.setHapticsEnabled(value: v),
+                  ),
+                ],
+              ),
+              _Group(
+                title: l.language,
+                children: const [
+                  Padding(
+                    key: Key('languageRow'),
+                    padding: EdgeInsets.all(KnightSpacing.lg),
+                    child: LanguageSelector(),
                   ),
                 ],
               ),

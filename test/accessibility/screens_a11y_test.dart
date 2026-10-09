@@ -21,6 +21,15 @@ void main() {
         await unmountScreen(tester);
       });
 
+      for (final scale in [1.0, 2.0]) {
+        testWidgets('Arabic ${scale}x text: right-to-left, no overflow', (tester) async {
+          await pumpScreen(tester, screen, locale: const Locale('ar'), textScale: scale);
+          expect(tester.takeException(), isNull);
+          expect(Directionality.of(tester.element(find.byType(Scaffold).first)), TextDirection.rtl);
+          await unmountScreen(tester);
+        });
+      }
+
       for (final (name, palette) in [('Midnight', KnightPalette.midnight), ('AMOLED', KnightPalette.amoled)]) {
         testWidgets('$name: tap targets (48 dp / 44 pt), labels and text contrast', (tester) async {
           final handle = tester.ensureSemantics();

@@ -667,5 +667,17 @@
         "format": "decimalPattern"
       }
     }
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Settings row and onboarding label for the app language picker."
+  },
+  "languageNameEn": "English",
+  "@languageNameEn": {
+    "description": "Always in English, in every locale, so people can find their language."
+  },
+  "languageNameAr": "العربية",
+  "@languageNameAr": {
+    "description": "Always in Arabic, in every locale, so people can find their language."
   }
 }

@@ -77,6 +77,10 @@ class AppSettingsTable extends Table {
   /// shown once per rank-up day.
   TextColumn get rankCelebratedOn => text().nullable()();
 
+  /// Chosen app language (`en` | `ar`); null follows the device language,
+  /// falling back to English.
+  TextColumn get localeCode => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -182,7 +186,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -214,6 +218,9 @@ class AppDatabase extends _$AppDatabase {
       from4To5: (m, schema) async {
         await m.addColumn(schema.appSettings, schema.appSettings.hapticsEnabled);
         await m.addColumn(schema.appSettings, schema.appSettings.rankCelebratedOn);
+      },
+      from5To6: (m, schema) async {
+        await m.addColumn(schema.appSettings, schema.appSettings.localeCode);
       },
     ),
     beforeOpen: (details) async {

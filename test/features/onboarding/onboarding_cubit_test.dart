@@ -191,9 +191,10 @@ void main() {
     expect(reconciler.calls, isEmpty);
 
     cubit.setEnd(1020);
-    await settings.save(settings.current.copyWith(waterPerTapMl: 300));
+    await settings.save(settings.current.copyWith(waterPerTapMl: 300, localeCode: 'ar'));
     expect(await cubit.finish(), isTrue);
     expect(settings.current.waterPerTapMl, 300);
+    expect(settings.current.localeCode, 'ar', reason: 'the language chosen on step 0 is kept');
   });
 
   test('double finish saves and reconciles once', () async {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -51,5 +52,62 @@ void main() {
 
   test('AMOLED uses a true-black background', () {
     expect(KnightPalette.amoled.background, const Color(0xFF000000));
+  });
+
+  group('splash hand-off', () {
+    String hex(Color c) => (c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
+
+    test('the splash background is the Midnight background, 1:1', () {
+      expect(KnightPalette.splashBackground, KnightPalette.midnight.background);
+    });
+
+    test('native splash and launch-window colours match it', () {
+      final want = '#${hex(KnightPalette.splashBackground)}';
+      for (final path in [
+        'flutter_native_splash.yaml',
+        'flutter_launcher_icons.yaml',
+        'android/app/src/main/res/values/colors.xml',
+        'android/app/src/main/res/values-v31/styles.xml',
+        'android/app/src/main/res/values-night-v31/styles.xml',
+      ]) {
+        final colours = RegExp(r'#(?:FF)?([0-9A-Fa-f]{6})\b').allMatches(File(path).readAsStringSync());
+        expect(colours, isNotEmpty, reason: path);
+        for (final m in colours) {
+          expect('#${m[1]!.toUpperCase()}', want, reason: path);
+        }
+      }
+    });
+  });
+
+  group('joined scripts (Arabic)', () {
+    test('build(joinedScript: true) drops letter spacing from the type scale', () {
+      final latin = KnightTheme.build(KnightPalette.midnight).textTheme;
+      final arabic = KnightTheme.build(KnightPalette.midnight, joinedScript: true).textTheme;
+      expect(latin.headlineMedium!.letterSpacing, greaterThan(0));
+      expect(latin.labelLarge!.letterSpacing, greaterThan(0));
+      for (final style in [arabic.headlineMedium, arabic.labelLarge, arabic.labelSmall, arabic.bodyMedium]) {
+        expect(style!.letterSpacing, 0);
+      }
+      expect(arabic.headlineMedium!.fontSize, latin.headlineMedium!.fontSize, reason: 'only the tracking changes');
+    });
+
+    testWidgets('tracking() is 0 in Arabic and unchanged in English', (tester) async {
+      final seen = <String, double>{};
+      for (final code in ['en', 'ar']) {
+        await tester.pumpWidget(
+          Localizations(
+            locale: Locale(code),
+            delegates: const [DefaultWidgetsLocalizations.delegate],
+            child: Builder(
+              builder: (context) {
+                seen[code] = KnightTheme.tracking(context, 1.6);
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
+      }
+      expect(seen, {'en': 1.6, 'ar': 0.0});
+    });
   });
 }

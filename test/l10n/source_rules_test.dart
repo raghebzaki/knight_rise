@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:knight_rise/l10n/generated/app_localizations_ar.dart';
 import 'package:knight_rise/l10n/generated/app_localizations_en.dart';
 
 /// Hand-written sources under lib/ (no generated code).
@@ -64,5 +66,44 @@ void main() {
     expect(l.waterProgress(1250, 2000), '1,250 / 2,000 ml');
     expect(l.statWaterValue(1800), '1,800 ml');
     expect(l.mlAmount(500), '500 ml');
+  });
+
+  group('Arabic catalogue', () {
+    Map<String, dynamic> arb(String code) =>
+        jsonDecode(File('lib/l10n/arb/app_$code.arb').readAsStringSync()) as Map<String, dynamic>;
+    Iterable<String> messages(Map<String, dynamic> m) => m.keys.where((k) => !k.startsWith('@'));
+    // Placeholder names used in a message ({name} or {name, plural, ...}).
+    Set<String> placeholders(String message) =>
+        RegExp(r'\{(\w+)(?=[,}])').allMatches(message).map((m) => m[1]!).toSet();
+
+    test('translates every English message, and nothing else', () {
+      expect(messages(arb('ar')).toSet(), messages(arb('en')).toSet());
+    });
+
+    test('keeps every placeholder of the English message', () {
+      final en = arb('en');
+      final ar = arb('ar');
+      for (final key in messages(en)) {
+        expect(placeholders(ar[key] as String), placeholders(en[key] as String), reason: key);
+      }
+    });
+
+    test('language names read the same in both languages', () {
+      final en = AppLocalizationsEn();
+      final ar = AppLocalizationsAr();
+      expect([ar.languageNameEn, ar.languageNameAr], [en.languageNameEn, en.languageNameAr]);
+      expect(en.language, 'Language');
+      expect(ar.language, 'اللغة');
+    });
+
+    test('plurals use the Arabic forms, with Latin digits', () {
+      final l = AppLocalizationsAr();
+      expect(l.streakDays(1), 'سلسلة يوم واحد');
+      expect(l.streakDays(2), 'سلسلة يومين');
+      expect(l.streakDays(5), 'سلسلة 5 أيام');
+      expect(l.streakDays(14), 'سلسلة 14 يومًا');
+      expect(l.countdownRemaining(2), 'دقيقتان متبقيتان');
+      expect(l.waterToday(1250), '1,250 مل اليوم');
+    });
   });
 }

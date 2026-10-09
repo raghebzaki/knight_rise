@@ -8,6 +8,7 @@ import 'package:knight_rise/features/onboarding/presentation/onboarding_cubit.da
 import 'package:knight_rise/features/onboarding/presentation/onboarding_page.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
+import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 
 import '../../helpers/fakes.dart';
 import '../../helpers/pump_app.dart';
@@ -30,13 +31,24 @@ void main() {
 
   tearDown(getIt.reset);
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {LocaleCubit? locale}) async {
     useTallView(tester);
     final permission = NotificationPermissionCubit(gateway, reconciler);
     addTearDown(permission.close);
     await permission.check();
-    await tester.pumpWidget(BlocProvider.value(value: permission, child: themedApp(const OnboardingPage())));
+    const page = OnboardingPage();
+    await tester.pumpWidget(
+      BlocProvider.value(value: permission, child: locale == null ? themedApp(page) : localizedApp(locale, page)),
+    );
     await tester.pumpAndSettle();
+  }
+
+  Future<LocaleCubit> pumpWithLanguage(WidgetTester tester) async {
+    final locale = LocaleCubit(settings);
+    addTearDown(locale.close);
+    await locale.load();
+    await pumpPage(tester, locale: locale);
+    return locale;
   }
 
   OnboardingCubit cubitOf(WidgetTester tester) => tester.element(find.byType(Scaffold)).read<OnboardingCubit>();
@@ -60,6 +72,54 @@ void main() {
     expect(find.byKey(const Key('onboarding-back')), findsNothing);
     expect(find.byKey(const Key('progress-segment-3')), findsOneWidget);
     expect(segmentColor(tester, 0), isNot(segmentColor(tester, 1)));
+  });
+
+  group('language (step 0)', () {
+    testWidgets('the welcome step opens with the language selector, on the device language', (tester) async {
+      await pumpWithLanguage(tester);
+      expect(find.byKey(const Key('languageSelector')), findsOneWidget);
+      expect(find.text('English'), findsOneWidget);
+      expect(find.text('العربية'), findsOneWidget);
+      final selector = tester.widget<SegmentedButton<Locale>>(find.byKey(const Key('languageSelector')));
+      expect(selector.selected, {const Locale('en')}, reason: 'the test device is en-US');
+      expect(settings.current.localeCode, isNull, reason: 'nothing is stored until a choice is made');
+    });
+
+    testWidgets('choosing العربية switches the whole flow to Arabic and RTL at once, and persists it', (tester) async {
+      final locale = await pumpWithLanguage(tester);
+      expect(directionAt(tester, find.text('Begin')), TextDirection.ltr);
+
+      await tester.tap(find.text('العربية'));
+      await tester.pumpAndSettle();
+
+      expect(locale.state, const Locale('ar'));
+      expect(settings.current.localeCode, 'ar');
+      expect(find.text('ابدأ'), findsOneWidget, reason: 'Begin, in Arabic');
+      expect(find.text('Begin'), findsNothing);
+      expect(directionAt(tester, find.text('ابدأ')), TextDirection.rtl);
+      expect(tester.widget<SegmentedButton<Locale>>(find.byKey(const Key('languageSelector'))).selected, {
+        const Locale('ar'),
+      });
+
+      // The draft and its step survive the switch; the next steps read in Arabic.
+      await primary(tester);
+      expect(cubitOf(tester).state.step, OnboardingStep.routines);
+      expect(find.text('روتيناتك'), findsOneWidget, reason: 'Your routines, in Arabic');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('switching back to English restores LTR and the English copy', (tester) async {
+      await settings.save(settings.current.copyWith(localeCode: 'ar'));
+      await pumpWithLanguage(tester);
+      expect(find.text('ابدأ'), findsOneWidget, reason: 'a stored choice applies from the first frame');
+
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+
+      expect(settings.current.localeCode, 'en');
+      expect(find.text('Begin'), findsOneWidget);
+      expect(directionAt(tester, find.text('Begin')), TextDirection.ltr);
+    });
   });
 
   testWidgets('swiping does not skip steps', (tester) async {

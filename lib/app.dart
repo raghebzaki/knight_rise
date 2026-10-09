@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
@@ -14,15 +13,21 @@ import 'package:knight_rise/features/cycle/presentation/bloc/cycle_bloc.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
 import 'package:knight_rise/features/scheduler/presentation/schedule_sync_service.dart';
+import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
+import 'package:knight_rise/l10n/app_locales.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 class KnightRiseApp extends StatefulWidget {
-  const KnightRiseApp({super.key, this.router});
+  const KnightRiseApp({super.key, this.router, this.showSplash = true});
 
   /// Injected in tests; the DI singleton otherwise.
   final GoRouter? router;
+
+  /// False when a notification tap launched the app (see
+  /// [SplashOverlay.playsOnLaunch]).
+  final bool showSplash;
 
   @override
   State<KnightRiseApp> createState() => _KnightRiseAppState();
@@ -32,12 +37,13 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
   late final GoRouter _router = widget.router ?? getIt<GoRouter>();
   late final ScheduleSyncService _sync = getIt<ScheduleSyncService>();
   late final NotificationPermissionCubit _permission = getIt<NotificationPermissionCubit>();
+  late final LocaleCubit _locale = getIt<LocaleCubit>();
   late final AppLifecycleListener _lifecycle;
   StreamSubscription<void>? _tzSub;
 
   /// Animated splash over the first route, once per cold start. Held here,
   /// above the [_scope] key, so a timezone change never replays it.
-  bool _showSplash = true;
+  late bool _showSplash = widget.showSplash;
 
   /// Changing this recreates the BlocProviders (and so CycleBloc / ThemeCubit)
   /// after a timezone change, so they pick up the new `tz.Location`.
@@ -92,12 +98,16 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
           // Value-provided: owned by this state so it survives scope resets
           // (a dismissed card must stay dismissed after a timezone change).
           BlocProvider.value(value: _permission),
+          // A process-wide singleton, loaded in main() before the first frame.
+          BlocProvider.value(value: _locale),
           BlocProvider(create: (_) => getIt<ThemeCubit>()),
           BlocProvider(create: (_) => getIt<CycleBloc>()..add(const CycleStarted())),
         ],
         child: BlocBuilder<ThemeCubit, ThemeVariant>(
           builder: (context, variant) {
             final palette = KnightPalette.of(variant);
+            // Null follows the device language.
+            final locale = context.watch<LocaleCubit>().state;
             return AnnotatedRegion<SystemUiOverlayStyle>(
               value: KnightTheme.overlayStyle(palette),
               child: MaterialApp.router(
@@ -106,19 +116,22 @@ class _KnightRiseAppState extends State<KnightRiseApp> {
                 theme: KnightTheme.build(palette),
                 themeMode: ThemeMode.dark,
                 darkTheme: KnightTheme.build(palette),
-                localizationsDelegates: const [
-                  AppLocalizations.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: AppLocalizations.supportedLocales,
+                locale: locale,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: kSupportedLocales,
                 routerConfig: _router,
-                builder: (context, child) => SplashOverlay(
-                  show: _showSplash,
-                  onFinished: () => setState(() => _showSplash = false),
-                  child: child ?? const SizedBox.shrink(),
-                ),
+                // Inside Localizations: the resolved language is known here,
+                // and RTL follows from GlobalWidgetsLocalizations.
+                builder: (context, child) {
+                  final app = SplashOverlay(
+                    show: _showSplash,
+                    onFinished: () => setState(() => _showSplash = false),
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                  return KnightTheme.isJoinedScript(Localizations.localeOf(context))
+                      ? Theme(data: KnightTheme.build(palette, joinedScript: true), child: app)
+                      : app;
+                },
               ),
             );
           },

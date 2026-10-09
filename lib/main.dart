@@ -14,6 +14,8 @@ import 'package:knight_rise/features/notifications/domain/reminder_action.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_gate.dart';
 import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/handle_reminder_action.dart';
+import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
+import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,10 +27,13 @@ Future<void> main() async {
   await getIt<OnboardingGate>().load();
   if (kDevFlavor && kDebugMode) Bloc.observer = const _LogObserver();
   if (kReleaseMode) ErrorWidget.builder = (_) => const KnightBuildErrorFallback();
-  runApp(const KnightRiseApp());
+  // So the first frame is already in the chosen language and direction.
+  await getIt<LocaleCubit>().load();
   // Cold start from a notification tap: the plugin reports it as launch
-  // details instead of calling the foreground callback.
+  // details instead of calling the foreground callback. Read before the first
+  // frame (the native splash is still up) so such a launch skips the splash.
   final launch = await getIt<NotificationGateway>().launchAction();
+  runApp(KnightRiseApp(showSplash: SplashOverlay.playsOnLaunch(launch)));
   if (launch != null && launch.kind == ReminderActionKind.open) {
     WidgetsBinding.instance.addPostFrameCallback((_) => _openBreak(launch));
   }

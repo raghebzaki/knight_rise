@@ -13,7 +13,8 @@ abstract final class KnightFonts {
 
 /// Builds [ThemeData] for a [KnightPalette].
 abstract final class KnightTheme {
-  static ThemeData build(KnightPalette p) {
+  /// [joinedScript] drops letter spacing from the type scale (see [tracking]).
+  static ThemeData build(KnightPalette p, {bool joinedScript = false}) {
     final scheme = ColorScheme(
       brightness: Brightness.dark,
       primary: p.primary,
@@ -35,7 +36,7 @@ abstract final class KnightTheme {
       surfaceTint: Colors.transparent,
     );
 
-    final text = textTheme(p);
+    final text = textTheme(p, joinedScript: joinedScript);
     final mdShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(KnightRadius.md));
 
     return ThemeData(
@@ -173,14 +174,14 @@ abstract final class KnightTheme {
   ///
   /// Orbitron and Inter ship as variable fonts, so weight is applied through
   /// [FontVariation] as well as [FontWeight].
-  static TextTheme textTheme(KnightPalette p) {
+  static TextTheme textTheme(KnightPalette p, {bool joinedScript = false}) {
     TextStyle inter(double size, double height, double weight, {double ls = 0}) => TextStyle(
       fontFamily: KnightFonts.body,
       fontSize: size,
       height: height / size,
       fontWeight: _weight(weight),
       fontVariations: [FontVariation.weight(weight)],
-      letterSpacing: ls,
+      letterSpacing: joinedScript ? 0 : ls,
       color: p.onSurface,
     );
     TextStyle rajdhani(double size, double height, FontWeight weight, {double ls = 0}) => TextStyle(
@@ -188,7 +189,7 @@ abstract final class KnightTheme {
       fontSize: size,
       height: height / size,
       fontWeight: weight,
-      letterSpacing: ls,
+      letterSpacing: joinedScript ? 0 : ls,
       color: p.onSurface,
     );
 
@@ -221,6 +222,15 @@ abstract final class KnightTheme {
     fontFeatures: const [FontFeature.tabularFigures()],
     color: p.onSurface,
   );
+
+  /// Whether [locale] is written in a joined script (Arabic), where letter
+  /// spacing pulls the connected letters apart.
+  static bool isJoinedScript(Locale locale) => locale.languageCode == 'ar';
+
+  /// [spacing] as letter spacing for the current language: 0 in a joined
+  /// script, unchanged otherwise.
+  static double tracking(BuildContext context, double spacing) =>
+      isJoinedScript(Localizations.localeOf(context)) ? 0 : spacing;
 
   static SystemUiOverlayStyle overlayStyle(KnightPalette p) => SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
