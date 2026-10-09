@@ -1,5 +1,5 @@
-// fake_async is a transitive dependency of flutter_test; avoids a pubspec change.
-// ignore_for_file: depend_on_referenced_packages, discarded_futures
+// Futures from fake-async-driven calls are driven by the test, not awaited.
+// ignore_for_file: discarded_futures
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/clock/clock.dart';
@@ -221,6 +221,36 @@ void main() {
       async.elapse(_debounce);
       expect(reconciler.calls.length, before + 1);
       expect(reconciler.calls.last, _config);
+    });
+  });
+
+  test('reconcileNow is a no-op before start, runs the trigger once started', () {
+    run((async) {
+      service.reconcileNow(ReconcileTrigger.periodic);
+      async.flushMicrotasks();
+      expect(reconciler.calls, isEmpty);
+      service.start();
+      async.flushMicrotasks();
+      service.reconcileNow(ReconcileTrigger.periodic);
+      async.flushMicrotasks();
+      expect(reconciler.calls, [ReconcileTrigger.launch, ReconcileTrigger.periodic]);
+    });
+  });
+
+  test('reconcileNow is serialized with other runs and a no-op after dispose', () {
+    reconciler.delay = const Duration(seconds: 1);
+    run((async) {
+      service.start();
+      async.flushMicrotasks();
+      service.reconcileNow(ReconcileTrigger.periodic);
+      async.elapse(const Duration(seconds: 5));
+      expect(reconciler.maxConcurrent, 1);
+      expect(reconciler.calls, [ReconcileTrigger.launch, ReconcileTrigger.periodic]);
+      service
+        ..dispose()
+        ..reconcileNow(ReconcileTrigger.periodic);
+      async.elapse(const Duration(seconds: 5));
+      expect(reconciler.calls, hasLength(2));
     });
   });
 

@@ -7,6 +7,7 @@ import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/bootstrap_background.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
+import 'package:knight_rise/features/scheduler/desktop/desktop_heartbeat.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/services/schedule_reconciler.dart';
 import 'package:workmanager/workmanager.dart';
@@ -169,13 +170,16 @@ class WorkmanagerBackgroundScheduler implements BackgroundScheduler {
 }
 
 /// Desktop: there is no OS background wake-up and no headless isolate. The
-/// app process itself stays alive (launched at login) and reconciles
-/// in-process, so there is nothing to register.
+/// app process itself stays alive (launched at login), so registering just
+/// starts the in-process [DesktopHeartbeat], which fires due reminders and
+/// runs the hourly reconcile and history maintenance.
 @desktopEnv
 @LazySingleton(as: BackgroundScheduler)
 class DesktopBackgroundScheduler implements BackgroundScheduler {
-  const DesktopBackgroundScheduler();
+  const DesktopBackgroundScheduler(this._heartbeat);
+
+  final DesktopHeartbeat _heartbeat;
 
   @override
-  Future<void> register() async {}
+  Future<void> register() async => _heartbeat.start();
 }

@@ -151,6 +151,14 @@ class ScheduleSyncService implements RemindersPausedSource {
     await _run(trigger);
   }
 
+  /// Runs a reconcile for [trigger] now, serialized with the service's own
+  /// runs. No-op before [start] or after [dispose]. Used by the desktop
+  /// heartbeat as the in-process stand-in for the hourly background task.
+  Future<void> reconcileNow(ReconcileTrigger trigger) async {
+    if (!_started || _disposed) return;
+    await _run(trigger);
+  }
+
   @disposeMethod
   void dispose() {
     _disposed = true;

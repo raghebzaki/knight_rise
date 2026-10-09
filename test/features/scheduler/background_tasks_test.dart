@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/config/background_ids.dart';
 import 'package:knight_rise/features/scheduler/data/background_tasks.dart';
+import 'package:knight_rise/features/scheduler/desktop/desktop_heartbeat.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/services/schedule_reconciler.dart';
 import 'package:mocktail/mocktail.dart';
@@ -10,6 +11,8 @@ import 'package:workmanager/workmanager.dart';
 import '../../helpers/fakes.dart';
 
 class _MockAdapter extends Mock implements WorkmanagerAdapter;
+
+class _MockHeartbeat extends Mock implements DesktopHeartbeat;
 
 class _ErrorReconciler implements ScheduleReconciler {
   @override
@@ -186,7 +189,9 @@ void main() {
     });
   });
 
-  test('DesktopBackgroundScheduler registers nothing and completes', () async {
-    await expectLater(const DesktopBackgroundScheduler().register(), completes);
+  test('DesktopBackgroundScheduler register starts the heartbeat', () async {
+    final heartbeat = _MockHeartbeat();
+    await DesktopBackgroundScheduler(heartbeat).register();
+    verify(heartbeat.start).called(1);
   });
 }

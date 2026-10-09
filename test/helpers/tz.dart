@@ -15,4 +15,5 @@ tz.Location get cairo => loc('Africa/Cairo');
 tz.Location get newYork => loc('America/New_York');
 
 /// Wall-clock time in [l].
-tz.TZDateTime at(tz.Location l, int y, int m, int d, [int h = 0, int min = 0]) => tz.TZDateTime(l, y, m, d, h, min);
+tz.TZDateTime at(tz.Location l, int y, int m, int d, [int h = 0, int min = 0, int s = 0, int ms = 0]) =>
+    tz.TZDateTime(l, y, m, d, h, min, s, ms);
