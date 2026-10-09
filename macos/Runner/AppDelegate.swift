@@ -35,6 +35,9 @@ class AppDelegate: FlutterAppDelegate {
   /// sleep stays allowed (the heartbeat's wall-clock catch-up handles sleep).
   private var activityToken: NSObjectProtocol?
 
+  /// Whether the App Nap opt-out activity is currently held (Device health).
+  var appNapDisabled: Bool { activityToken != nil }
+
   override func applicationWillFinishLaunching(_ notification: Notification) {
     _ = AppDelegate.launchedAtLogin
     super.applicationWillFinishLaunching(notification)

@@ -43,6 +43,22 @@ class DesktopHeartbeat {
   bool _beating = false;
   DateTime? _lastBeat;
   late DateTime _lastPeriodic;
+  final Stopwatch _sinceArmed = Stopwatch();
+  Duration _armedDelay = Duration.zero;
+  bool _lastBeatWoke = false;
+  Duration? _timerLag;
+
+  /// When the last beat completed its work; null before the first one.
+  DateTime? get lastBeatAt => _lastBeat;
+
+  /// How late the last timer-driven beat fired, measured on the monotonic
+  /// clock (which does not count system sleep), so it isolates throttling
+  /// such as App Nap from the machine sleeping. Beats that detected a wake
+  /// are not measured. Null until a measured beat.
+  Duration? get timerLag => _timerLag;
+
+  /// Whether [start] has run (and [dispose] has not).
+  bool get isRunning => _started && !_disposed;
 
   /// Time from [now] to the next minute boundary plus one second (the next
   /// one only once this one has passed); in (0, 60 s].
@@ -71,15 +87,28 @@ class DesktopHeartbeat {
 
   void _arm() {
     if (_disposed) return;
-    _timer = Timer(delayUntilNextBeat(_clock.now()), () => unawaited(_onTimer()));
+    _armedDelay = delayUntilNextBeat(_clock.now());
+    _sinceArmed
+      ..reset()
+      ..start();
+    _timer = Timer(_armedDelay, () => unawaited(_onTimer()));
   }
 
   Future<void> _onTimer() async {
+    final lag = _sinceArmed.elapsed - _armedDelay;
     try {
       await beat();
+      if (!_lastBeatWoke) _timerLag = lag < Duration.zero ? Duration.zero : lag;
     } finally {
       _arm();
     }
+  }
+
+  /// Runs a beat now, outside the timer (e.g. before reading health right
+  /// after a wake, when the next timer beat may still be up to a minute
+  /// away). No-op unless running.
+  Future<void> beatNow() async {
+    if (isRunning) await beat();
   }
 
   /// Runs one beat. Skipped while a previous beat is still running. Never throws.
@@ -96,6 +125,7 @@ class DesktopHeartbeat {
 
       final last = _lastBeat;
       final woke = last != null && (now.difference(last) > wakeGap || now.isBefore(last));
+      _lastBeatWoke = woke;
       final location = _location.current;
       final dayChanged = last != null && localDateOf(now, location) != localDateOf(last, location);
 

@@ -341,6 +341,46 @@
   "healthRefreshOn": "On",
   "healthRefreshDenied": "Off: your schedule may not be topped up",
   "healthRefreshRestricted": "Restricted by the system",
+  "healthNotificationsOpen": "Open notification settings",
+  "healthNotificationsUnverified": "Windows doesn't let apps read this. Check that notifications are on for Knight Rise.",
+  "healthLaunchTitle": "Launch at login",
+  "healthLaunchOn": "Knight Rise starts when you sign in",
+  "healthLaunchOff": "Off: reminders stop after a restart until you open the app",
+  "healthLaunchApproval": "Waiting for your approval in Login Items",
+  "healthLaunchUnavailable": "Not available in this build",
+  "healthOpenLoginItems": "Open Login Items",
+  "healthBackgroundTitle": "Background running",
+  "healthBackgroundOk": "Running · last check {when}",
+  "@healthBackgroundOk": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "healthBackgroundStalled": "Timers look throttled: last check {when}. Reminders may be late.",
+  "@healthBackgroundStalled": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "healthBackgroundStarting": "Running · starting up",
+  "healthAgoJustNow": "just now",
+  "healthAgoMinutes": "{minutes, plural, =1{1 minute ago} other{{minutes} minutes ago}}",
+  "@healthAgoMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "healthAppNapTitle": "App Nap",
+  "healthAppNapOff": "Off for Knight Rise",
+  "healthAppNapOn": "On: macOS may delay reminders while the app is hidden",
+  "healthBatteryDesktopHelp": "Battery saver can delay reminders on laptops.",
+  "healthOpenBatterySettings": "Open battery settings",
   "healthAllGood": "All good",
   "healthIssues": "{count, plural, =1{1 issue} other{{count} issues}}",
   "@healthIssues": {
@@ -433,6 +473,8 @@
   "onboardingRemindersEnabled": "Reminders enabled",
   "onboardingRemindersBlocked": "Notifications are blocked. You can turn them on in your phone's system settings.",
   "onboardingBatteryNote": "Some phones stop reminders to save battery — check Settings › Device health after setup.",
+  "onboardingLaunchAtLoginTitle": "Start Knight Rise when you sign in",
+  "onboardingLaunchAtLoginSubtitle": "Reminders keep running after a restart. You can change this anytime in Device health.",
   "onboardingTakeOath": "Take the Oath",
   "onboardingFinishFailed": "Could not save your setup. Please try again.",
   "navToday": "Today",

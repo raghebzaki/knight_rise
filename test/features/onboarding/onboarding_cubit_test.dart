@@ -1,25 +1,30 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_cubit.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/health_fakes.dart';
 
 void main() {
   late FakeRoutineRepository routines;
   late FakeWorkScheduleRepository schedule;
   late FakeSettingsRepository settings;
   late FakeScheduleReconciler reconciler;
+  late FakeLaunchAtLogin launch;
   late OnboardingCubit cubit;
 
-  OnboardingCubit build() => OnboardingCubit(routines, schedule, settings, reconciler);
+  OnboardingCubit build() => OnboardingCubit(routines, schedule, settings, reconciler, launch);
 
   setUp(() async {
     routines = FakeRoutineRepository();
     schedule = FakeWorkScheduleRepository();
     settings = FakeSettingsRepository();
     reconciler = FakeScheduleReconciler();
+    launch = FakeLaunchAtLogin(LaunchAtLoginStatus.disabled);
     cubit = build();
     addTearDown(cubit.close);
     await cubit.load();
@@ -211,5 +216,47 @@ void main() {
     reconciler.throwOnNext = StateError('boom');
     expect(await cubit.finish(), isTrue);
     expect(settings.current.onboardingCompleted, isTrue);
+  });
+
+  group('launch at login (desktop)', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('defaults to on and finish applies it after saving', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      expect(cubit.state.launchAtLogin, isTrue);
+      expect(await cubit.finish(), isTrue);
+      expect(launch.sets, [true]);
+      expect(settings.current.onboardingCompleted, isTrue);
+    });
+
+    test('opting out applies false', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      cubit.setLaunchAtLogin(value: false);
+      expect(await cubit.finish(), isTrue);
+      expect(launch.sets, [false]);
+    });
+
+    test('a failing registration never blocks finishing', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      launch.throwOnSet = StateError('boom');
+      expect(await cubit.finish(), isTrue);
+      expect(settings.current.onboardingCompleted, isTrue);
+      expect(reconciler.calls, [ReconcileTrigger.manual]);
+    });
+
+    test('an invalid draft does not touch the login item', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      for (final t in RoutineType.values) {
+        cubit.setRoutineEnabled(t, enabled: false);
+      }
+      expect(await cubit.finish(), isFalse);
+      expect(launch.sets, isEmpty);
+    });
+
+    test('mobile never calls it', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(await cubit.finish(), isTrue);
+      expect(launch.sets, isEmpty);
+    });
   });
 }

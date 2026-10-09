@@ -6,6 +6,7 @@ import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/device_health/domain/device_health_report.dart';
 import 'package:knight_rise/features/device_health/domain/health_issue.dart';
 import 'package:knight_rise/features/device_health/domain/oem_guide.dart';
@@ -59,6 +60,8 @@ class _DeviceHealthPageState extends State<DeviceHealthPage> {
             if (report == null) return const Center(child: CircularProgressIndicator());
             final android = report.platform == HealthPlatform.android;
             final ios = report.platform == HealthPlatform.ios;
+            final macos = report.platform == HealthPlatform.macos;
+            final desktop = macos || report.platform == HealthPlatform.windows;
             return ListView(
               padding: const EdgeInsetsDirectional.fromSTEB(
                 KnightSpacing.lg,
@@ -71,7 +74,14 @@ class _DeviceHealthPageState extends State<DeviceHealthPage> {
                   padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      _NotificationsRow(report: report, issue: state.issue(HealthKind.notifications)),
+                      if (desktop)
+                        _DesktopNotificationsRow(report: report, state: state)
+                      else
+                        _NotificationsRow(report: report, issue: state.issue(HealthKind.notifications)),
+                      if (desktop) _LaunchAtLoginRow(report: report, issue: state.issue(HealthKind.launchAtLogin)),
+                      if (desktop) _BackgroundRunningRow(report: report, issue: state.issue(HealthKind.heartbeat)),
+                      if (macos) _AppNapRow(report: report, issue: state.issue(HealthKind.appNap)),
+                      if (desktop) const _DesktopBatteryRow(),
                       if (android) _PrecisionRow(state: state, report: report),
                       if (android) _BatteryRow(report: report, issue: state.issue(HealthKind.battery)),
                       if (ios) _BackgroundRefreshRow(report: report, issue: state.issue(HealthKind.backgroundRefresh)),
@@ -283,6 +293,191 @@ class _OemGuideCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A desktop status row: [status] under the title, an optional [link] button
+/// under the status and an optional [trailing] control.
+class _DesktopRow extends StatelessWidget {
+  const _DesktopRow({
+    required this.rowKey,
+    required this.icon,
+    required this.title,
+    required this.status,
+    required this.color,
+    this.link,
+    this.onLink,
+    this.linkKey,
+    this.trailing,
+  });
+
+  final Key rowKey;
+  final IconData icon;
+  final String title;
+  final String status;
+  final Color color;
+  final String? link;
+  final VoidCallback? onLink;
+  final Key? linkKey;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      key: rowKey,
+      leading: Icon(icon, color: color),
+      title: Text(title),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(status),
+          if (link != null)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(key: linkKey, onPressed: onLink, child: Text(link!)),
+            ),
+        ],
+      ),
+      trailing: trailing,
+    );
+  }
+}
+
+class _DesktopNotificationsRow extends StatelessWidget {
+  const _DesktopNotificationsRow({required this.report, required this.state});
+
+  final DeviceHealthReport report;
+  final DeviceHealthState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final cubit = context.read<DeviceHealthCubit>();
+    final unverified = !report.notificationsVerifiable;
+    final issue = state.issue(HealthKind.notifications) ?? state.issue(HealthKind.notificationsUnverified);
+    return _DesktopRow(
+      rowKey: const Key('healthNotificationsRow'),
+      icon: Icons.notifications_active_outlined,
+      title: l.healthNotificationsTitle,
+      status: unverified
+          ? l.healthNotificationsUnverified
+          : report.notificationsEnabled
+          ? l.healthNotificationsOn
+          : l.healthNotificationsOff,
+      color: _statusColor(context, issue),
+      link: l.healthNotificationsOpen,
+      linkKey: const Key('healthNotificationsLink'),
+      onLink: () => unverified || report.notificationsEnabled
+          ? cubit.openNotificationSettings()
+          : cubit.fix(HealthKind.notifications),
+    );
+  }
+}
+
+class _LaunchAtLoginRow extends StatelessWidget {
+  const _LaunchAtLoginRow({required this.report, required this.issue});
+
+  final DeviceHealthReport report;
+  final HealthIssue? issue;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final cubit = context.read<DeviceHealthCubit>();
+    final status = report.launchAtLogin;
+    final approval = status == LaunchAtLoginStatus.requiresApproval;
+    final available = status != null && status != LaunchAtLoginStatus.unavailable;
+    return _DesktopRow(
+      rowKey: const Key('healthLaunchRow'),
+      icon: Icons.power_settings_new_outlined,
+      title: l.healthLaunchTitle,
+      status: switch (status) {
+        LaunchAtLoginStatus.enabled => l.healthLaunchOn,
+        LaunchAtLoginStatus.requiresApproval => l.healthLaunchApproval,
+        LaunchAtLoginStatus.disabled => l.healthLaunchOff,
+        LaunchAtLoginStatus.unavailable || null => l.healthLaunchUnavailable,
+      },
+      color: _statusColor(context, issue),
+      link: approval ? l.healthOpenLoginItems : null,
+      linkKey: const Key('healthLaunchOpenLoginItems'),
+      onLink: cubit.openLoginItems,
+      trailing: Switch(
+        key: const Key('healthLaunchSwitch'),
+        value: status == LaunchAtLoginStatus.enabled || approval,
+        onChanged: available ? (v) => cubit.setLaunchAtLogin(value: v) : null,
+      ),
+    );
+  }
+}
+
+/// "just now" / "3 minutes ago" for [beat] measured against [now].
+String _ago(AppLocalizations l, DateTime beat, DateTime now) {
+  final minutes = now.difference(beat).inMinutes;
+  return minutes < 1 ? l.healthAgoJustNow : l.healthAgoMinutes(minutes);
+}
+
+class _BackgroundRunningRow extends StatelessWidget {
+  const _BackgroundRunningRow({required this.report, required this.issue});
+
+  final DeviceHealthReport report;
+  final HealthIssue? issue;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final beat = report.lastHeartbeatAt;
+    final now = report.checkedAt;
+    final when = beat != null && now != null ? _ago(l, beat, now) : null;
+    return _DesktopRow(
+      rowKey: const Key('healthBackgroundRow'),
+      icon: Icons.sync_outlined,
+      title: l.healthBackgroundTitle,
+      status: when == null
+          ? l.healthBackgroundStarting
+          : issue != null
+          ? l.healthBackgroundStalled(when)
+          : l.healthBackgroundOk(when),
+      color: _statusColor(context, issue),
+    );
+  }
+}
+
+class _AppNapRow extends StatelessWidget {
+  const _AppNapRow({required this.report, required this.issue});
+
+  final DeviceHealthReport report;
+  final HealthIssue? issue;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _DesktopRow(
+      rowKey: const Key('healthAppNapRow'),
+      icon: Icons.bedtime_outlined,
+      title: l.healthAppNapTitle,
+      status: report.appNapDisabled == false ? l.healthAppNapOn : l.healthAppNapOff,
+      color: _statusColor(context, issue),
+    );
+  }
+}
+
+/// A link-only row: there is no reliable way to detect battery saver here.
+class _DesktopBatteryRow extends StatelessWidget {
+  const _DesktopBatteryRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _DesktopRow(
+      rowKey: const Key('healthDesktopBatteryRow'),
+      icon: Icons.battery_charging_full_outlined,
+      title: l.healthBatteryTitle,
+      status: l.healthBatteryDesktopHelp,
+      color: context.knight.textMuted,
+      link: l.healthOpenBatterySettings,
+      linkKey: const Key('healthBatteryLink'),
+      onLink: context.read<DeviceHealthCubit>().openBatterySettings,
     );
   }
 }

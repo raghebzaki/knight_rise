@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/features/device_health/data/device_health_platform.dart';
 import 'package:knight_rise/features/device_health/data/device_identity.dart';
 import 'package:knight_rise/features/device_health/domain/device_health_report.dart';
@@ -7,6 +8,8 @@ import 'package:knight_rise/features/device_health/domain/device_health_reposito
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
 import 'package:knight_rise/features/settings/domain/repositories/settings_repository.dart';
 
+/// Android / iOS health signals.
+@mobileEnv
 @LazySingleton(as: DeviceHealthRepository)
 class PlatformDeviceHealthRepository implements DeviceHealthRepository {
   PlatformDeviceHealthRepository(this._gateway, this._platform, this._identity, this._settings);

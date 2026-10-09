@@ -60,7 +60,9 @@ void main() {
       health = HealthHarness();
       getIt
         ..registerFactory<DeviceHealthCubit>(() => health.cubit)
-        ..registerFactory<OnboardingCubit>(() => OnboardingCubit(routines, work, settings, reconciler))
+        ..registerFactory<OnboardingCubit>(
+          () => OnboardingCubit(routines, work, settings, reconciler, FakeLaunchAtLogin()),
+        )
         ..registerFactory<ShieldCubit>(
           () => ShieldCubit(
             StartShield(shields, work, overrides, const ReminderPlanner(), clock, location),

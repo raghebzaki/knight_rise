@@ -61,6 +61,8 @@ class MainFlutterWindow: NSWindow {
       case "openLoginItemsSettings":
         SMAppService.openSystemSettingsLoginItems()
         result(nil)
+      case "appNapDisabled":
+        result((NSApp.delegate as? AppDelegate)?.appNapDisabled ?? false)
       case "launchedAtLogin":
         result(AppDelegate.launchedAtLogin)
       default:

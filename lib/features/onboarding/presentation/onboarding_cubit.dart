@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
@@ -33,6 +35,7 @@ class OnboardingState extends Equatable {
     this.endMinute = 17 * 60,
     this.finishing = false,
     this.finishFailed = false,
+    this.launchAtLogin = true,
   });
 
   final bool loaded;
@@ -48,6 +51,10 @@ class OnboardingState extends Equatable {
   final int endMinute;
   final bool finishing;
   final bool finishFailed;
+
+  /// Desktop only: start the app when the user signs in. On by default
+  /// (opt-out); ignored on mobile.
+  final bool launchAtLogin;
 
   Routine? routine(RoutineType type) => routines.where((r) => r.type == type).firstOrNull;
 
@@ -95,6 +102,7 @@ class OnboardingState extends Equatable {
     int? endMinute,
     bool? finishing,
     bool? finishFailed,
+    bool? launchAtLogin,
   }) => OnboardingState(
     loaded: loaded ?? this.loaded,
     step: step ?? this.step,
@@ -105,21 +113,35 @@ class OnboardingState extends Equatable {
     endMinute: endMinute ?? this.endMinute,
     finishing: finishing ?? this.finishing,
     finishFailed: finishFailed ?? this.finishFailed,
+    launchAtLogin: launchAtLogin ?? this.launchAtLogin,
   );
 
   @override
-  List<Object?> get props => [loaded, step, routines, preset, days, startMinute, endMinute, finishing, finishFailed];
+  List<Object?> get props => [
+    loaded,
+    step,
+    routines,
+    preset,
+    days,
+    startMinute,
+    endMinute,
+    finishing,
+    finishFailed,
+    launchAtLogin,
+  ];
 }
 
 /// Draft of the first-run setup. Nothing is persisted until [finish].
 @injectable
 class OnboardingCubit extends Cubit<OnboardingState> {
-  OnboardingCubit(this._routines, this._schedule, this._settings, this._reconciler) : super(const OnboardingState());
+  OnboardingCubit(this._routines, this._schedule, this._settings, this._reconciler, this._launchAtLogin)
+    : super(const OnboardingState());
 
   final RoutineRepository _routines;
   final WorkScheduleRepository _schedule;
   final SettingsRepository _settings;
   final ScheduleReconciler _reconciler;
+  final LaunchAtLogin _launchAtLogin;
 
   /// Interval choices offered per routine (all inside [Routine.intervalRange]).
   static List<int> intervalOptions(RoutineType type) => switch (type) {
@@ -198,6 +220,8 @@ class OnboardingCubit extends Cubit<OnboardingState> {
     emit(state.copyWith(days: days));
   }
 
+  void setLaunchAtLogin({required bool value}) => emit(state.copyWith(launchAtLogin: value));
+
   void setStart(int minute) => emit(state.copyWith(startMinute: minute.clamp(0, 1439)));
 
   void setEnd(int minute) => emit(state.copyWith(endMinute: minute.clamp(1, 1440)));
@@ -220,6 +244,14 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       debugPrint('Onboarding save failed: $e\n$st');
       if (!isClosed) emit(state.copyWith(finishing: false, finishFailed: true));
       return false;
+    }
+    if (isDesktopPlatform(defaultTargetPlatform)) {
+      // Best effort: the user can still change it in Device health.
+      try {
+        await _launchAtLogin.setEnabled(s.launchAtLogin);
+      } on Object catch (e, st) {
+        debugPrint('Onboarding launch-at-login failed: $e\n$st');
+      }
     }
     try {
       await _reconciler.reconcile(ReconcileTrigger.manual);

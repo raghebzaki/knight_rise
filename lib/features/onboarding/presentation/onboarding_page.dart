@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
+import 'package:knight_rise/core/theme/text_scale.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/theme/widgets/knight_ring.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
@@ -247,9 +249,13 @@ class _WelcomeStep extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.translate, size: 20, color: tokens.textMuted),
-              const SizedBox(width: KnightSpacing.sm),
-              const LanguageSelector(),
+              // The icon is decorative; at large text the selector needs the width.
+              if (!context.isLargeText) ...[
+                Icon(Icons.translate, size: 20, color: tokens.textMuted),
+                const SizedBox(width: KnightSpacing.sm),
+              ],
+              // Bounded, so the segments share the width instead of overflowing.
+              const Flexible(child: LanguageSelector()),
             ],
           ),
         ),
@@ -563,6 +569,20 @@ class _OathStep extends StatelessWidget {
             );
           },
         ),
+        if (isDesktopPlatform(defaultTargetPlatform)) ...[
+          const SizedBox(height: KnightSpacing.lg),
+          KnightCard(
+            key: const Key('launch-at-login'),
+            padding: EdgeInsets.zero,
+            child: SwitchListTile(
+              key: const Key('launch-at-login-switch'),
+              title: Text(l.onboardingLaunchAtLoginTitle),
+              subtitle: Text(l.onboardingLaunchAtLoginSubtitle),
+              value: context.select<OnboardingCubit, bool>((c) => c.state.launchAtLogin),
+              onChanged: (v) => context.read<OnboardingCubit>().setLaunchAtLogin(value: v),
+            ),
+          ),
+        ],
         if (defaultTargetPlatform == TargetPlatform.android) ...[
           const SizedBox(height: KnightSpacing.lg),
           Text(l.onboardingBatteryNote, key: const Key('battery-note'), style: muted),

@@ -2,7 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
+import 'package:knight_rise/core/platform/desktop_settings_links.dart';
 import 'package:knight_rise/core/platform/system_settings_launcher.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/device_health/data/device_health_platform.dart';
 import 'package:knight_rise/features/device_health/domain/device_health_report.dart';
 import 'package:knight_rise/features/device_health/domain/device_health_repository.dart';
@@ -35,16 +38,26 @@ class DeviceHealthState extends Equatable {
 
 @injectable
 class DeviceHealthCubit extends Cubit<DeviceHealthState> {
-  DeviceHealthCubit(this._repository, this._gateway, this._settings, this._launcher, this._platform)
-    : super(const DeviceHealthState());
+  DeviceHealthCubit(
+    this._repository,
+    this._gateway,
+    this._settings,
+    this._launcher,
+    this._platform,
+    this._links,
+    this._launchAtLogin,
+  ) : super(const DeviceHealthState());
 
   final DeviceHealthRepository _repository;
   final NotificationGateway _gateway;
   final SettingsRepository _settings;
   final SystemSettingsLauncher _launcher;
   final DeviceHealthPlatform _platform;
+  final DesktopSettingsLinks _links;
+  final LaunchAtLogin _launchAtLogin;
 
   bool get _android => defaultTargetPlatform == TargetPlatform.android;
+  bool get _desktop => isDesktopPlatform(defaultTargetPlatform);
 
   /// Re-reads every signal. Call on open and on every app resume.
   Future<void> refresh() async {
@@ -68,7 +81,9 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
     switch (kind) {
       case HealthKind.notifications:
         if (!await _gateway.requestPermission()) {
-          if (_android) {
+          if (_desktop) {
+            await _links.openNotifications();
+          } else if (_android) {
             if (!await _launcher.openAppNotificationSettings()) await _launcher.openAppDetailsSettings();
           } else {
             await _platform.openAppSettings();
@@ -76,11 +91,48 @@ class DeviceHealthCubit extends Cubit<DeviceHealthState> {
         }
       case HealthKind.exactAlarms:
         await _gateway.requestExactAlarmPermission();
+      case HealthKind.battery when _desktop:
+        await _links.openBatterySettings();
       case HealthKind.battery:
         if (!await _launcher.openBatteryOptimizationSettings()) await _launcher.openAppDetailsSettings();
       case HealthKind.backgroundRefresh:
         await _platform.openAppSettings();
+      case HealthKind.launchAtLogin:
+        final status = await _launchAtLogin.status();
+        if (status == LaunchAtLoginStatus.requiresApproval) {
+          await _links.openLoginItems();
+        } else {
+          await _launchAtLogin.setEnabled(true);
+        }
+      case HealthKind.notificationsUnverified:
+        await _links.openNotifications();
+      case HealthKind.heartbeat || HealthKind.appNap:
+        break; // Informational: nothing the user can fix from here.
     }
+    await refresh();
+  }
+
+  /// The Launch at login switch (desktop).
+  Future<void> setLaunchAtLogin({required bool value}) async {
+    await _launchAtLogin.setEnabled(value);
+    await refresh();
+  }
+
+  /// Opens the OS notification settings (desktop), then re-reads.
+  Future<void> openNotificationSettings() async {
+    await _links.openNotifications();
+    await refresh();
+  }
+
+  /// Opens the OS login-items screen (desktop), then re-reads.
+  Future<void> openLoginItems() async {
+    await _links.openLoginItems();
+    await refresh();
+  }
+
+  /// Opens the OS battery settings (desktop).
+  Future<void> openBatterySettings() async {
+    await _links.openBatterySettings();
     await refresh();
   }
 

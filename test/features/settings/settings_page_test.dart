@@ -208,4 +208,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(settings.current.hapticsEnabled, isFalse);
   });
+
+  for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
+    testWidgets('$platform: the haptics switch is hidden', (tester) async {
+      debugDefaultTargetPlatformOverride = platform;
+      try {
+        await pumpSettings(tester);
+        expect(find.byKey(const Key('themeSelector')), findsOneWidget);
+        expect(find.byKey(const Key('hapticsSwitch')), findsNothing);
+        expect(find.text('Haptic feedback'), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  }
+
+  testWidgets('iOS keeps the haptics switch', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await pumpSettings(tester);
+      expect(find.byKey(const Key('hapticsSwitch')), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 }

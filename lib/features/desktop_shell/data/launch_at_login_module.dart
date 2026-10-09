@@ -11,6 +11,12 @@ abstract class LaunchAtLoginModule {
   @desktopEnv
   @lazySingleton
   LaunchAtLogin get launchAtLogin => launchAtLoginFor(defaultTargetPlatform);
+
+  /// Mobile cannot register a login item; consumers (onboarding, Device
+  /// health) still take a [LaunchAtLogin] and get this no-op.
+  @mobileEnv
+  @lazySingleton
+  LaunchAtLogin get unsupportedLaunchAtLogin => const UnsupportedLaunchAtLogin();
 }
 
 /// Chooses the [LaunchAtLogin] implementation for [platform].

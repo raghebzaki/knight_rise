@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/device_health/domain/device_health_report.dart';
 import 'package:knight_rise/features/device_health/domain/health_issue.dart';
 import 'package:knight_rise/features/device_health/domain/oem_guide.dart';
@@ -158,5 +159,53 @@ void main() {
     ios.platformFake.refresh = BackgroundRefresh.denied;
     await ios.cubit.refresh();
     expect(ios.cubit.state.issues, [const HealthIssue(HealthKind.backgroundRefresh, HealthSeverity.warning)]);
+  });
+
+  group('desktop fixes', () {
+    test('macOS: a refused notification prompt opens the notification settings', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      h.gateway
+        ..enabled = false
+        ..grantOnRequest = false;
+      await h.cubit.fix(HealthKind.notifications);
+      expect(h.links.calls, ['notifications']);
+      expect(h.launcher.calls, isEmpty);
+      expect(h.platformFake.openAppSettingsCalls, 0);
+    });
+
+    test('battery opens the OS battery settings, not the Android screens', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      await h.cubit.fix(HealthKind.battery);
+      expect(h.links.calls, ['battery']);
+      expect(h.launcher.calls, isEmpty);
+    });
+
+    test('launch at login: fix enables it, or opens Login Items when approval is pending', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      h.launchAtLogin.current = LaunchAtLoginStatus.disabled;
+      await h.cubit.fix(HealthKind.launchAtLogin);
+      expect(h.launchAtLogin.sets, [true]);
+      expect(h.links.calls, isEmpty);
+
+      h.launchAtLogin.current = LaunchAtLoginStatus.requiresApproval;
+      await h.cubit.fix(HealthKind.launchAtLogin);
+      expect(h.links.calls, ['loginItems']);
+      expect(h.launchAtLogin.sets, [true]);
+    });
+
+    test('unverified Windows notifications link to the system page', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      await h.cubit.fix(HealthKind.notificationsUnverified);
+      expect(h.links.calls, ['notifications']);
+      expect(h.gateway.requestPermissionCalls, 0);
+    });
+
+    test('heartbeat and App Nap have no fix but still refresh', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      await h.cubit.fix(HealthKind.heartbeat);
+      await h.cubit.fix(HealthKind.appNap);
+      expect(h.links.calls, isEmpty);
+      expect(h.cubit.state.loaded, isTrue);
+    });
   });
 }

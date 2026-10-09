@@ -53,7 +53,9 @@ void main() {
     final reconciler = FakeScheduleReconciler();
     getIt
       ..registerFactory<DeviceHealthCubit>(() => HealthHarness().cubit)
-      ..registerFactory<OnboardingCubit>(() => OnboardingCubit(routines, work, settings, reconciler))
+      ..registerFactory<OnboardingCubit>(
+        () => OnboardingCubit(routines, work, settings, reconciler, FakeLaunchAtLogin()),
+      )
       ..registerFactory<ShieldCubit>(
         () => ShieldCubit(
           StartShield(shields, work, overrides, const ReminderPlanner(), clock, location),

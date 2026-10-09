@@ -5,11 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/database/app_database.dart';
 import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/platform/desktop_settings_links.dart';
 import 'package:knight_rise/core/platform/platform_shell.dart';
 import 'package:knight_rise/features/desktop_shell/data/tray_port.dart';
 import 'package:knight_rise/features/desktop_shell/data/window_port.dart';
 import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/desktop_shell/presentation/desktop_shell.dart';
+import 'package:knight_rise/features/device_health/data/desktop_device_health_repository.dart';
+import 'package:knight_rise/features/device_health/data/platform_device_health_repository.dart';
+import 'package:knight_rise/features/device_health/domain/device_health_repository.dart';
+import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
 import 'package:knight_rise/features/notifications/data/desktop_toasts.dart';
 import 'package:knight_rise/features/notifications/data/in_process_notification_gateway.dart';
 import 'package:knight_rise/features/notifications/data/local_notification_gateway.dart';
@@ -97,9 +102,26 @@ void main() {
     test('mobile has a no-op shell and none of the desktop ports', () async {
       await configure(AppEnv.mobile);
       expect(getIt<PlatformShell>(), isA<NoopPlatformShell>());
-      expect(getIt.isRegistered<LaunchAtLogin>(), isFalse);
+      expect(getIt<LaunchAtLogin>(), isA<UnsupportedLaunchAtLogin>());
       expect(getIt.isRegistered<WindowPort>(), isFalse);
       expect(getIt.isRegistered<TrayPort>(), isFalse);
+    });
+
+    test('desktop resolves the desktop health repository and OS settings links', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      await configure(AppEnv.desktop);
+      expect(getIt<DeviceHealthRepository>(), isA<DesktopDeviceHealthRepository>());
+      expect(getIt<DesktopSettingsLinks>(), isA<UrlDesktopSettingsLinks>());
+      expect(getIt<UrlOpener>(), isA<LaunchUrlOpener>());
+      expect(getIt<DeviceHealthCubit>(), isNotNull);
+    });
+
+    test('mobile resolves the platform health repository and inert links', () async {
+      await configure(AppEnv.mobile);
+      expect(getIt<DeviceHealthRepository>(), isA<PlatformDeviceHealthRepository>());
+      expect(getIt<DesktopSettingsLinks>(), isA<UnsupportedDesktopSettingsLinks>());
+      expect(getIt.isRegistered<DesktopRuntimeProbe>(), isFalse);
+      expect(getIt<DeviceHealthCubit>(), isNotNull);
     });
 
     test('defaults to the running platform', () async {

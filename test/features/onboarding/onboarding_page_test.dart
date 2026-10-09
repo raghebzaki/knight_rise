@@ -11,6 +11,7 @@ import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dar
 import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 
 import '../../helpers/fakes.dart';
+import '../../helpers/health_fakes.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -19,6 +20,7 @@ void main() {
   late FakeSettingsRepository settings;
   late FakeScheduleReconciler reconciler;
   late FakeNotificationGateway gateway;
+  late FakeLaunchAtLogin launch;
 
   setUp(() {
     routines = FakeRoutineRepository();
@@ -26,7 +28,8 @@ void main() {
     settings = FakeSettingsRepository();
     reconciler = FakeScheduleReconciler();
     gateway = FakeNotificationGateway()..enabled = false;
-    getIt.registerFactory<OnboardingCubit>(() => OnboardingCubit(routines, schedule, settings, reconciler));
+    launch = FakeLaunchAtLogin();
+    getIt.registerFactory<OnboardingCubit>(() => OnboardingCubit(routines, schedule, settings, reconciler, launch));
   });
 
   tearDown(getIt.reset);
@@ -299,5 +302,137 @@ void main() {
     await tester.tap(button, warnIfMissed: false);
     await tester.pump(const Duration(milliseconds: 200));
     expect(reconciler.calls, [ReconcileTrigger.manual]);
+  });
+
+  group('launch at login', () {
+    Future<void> toOath(WidgetTester tester) async {
+      await pumpPage(tester);
+      await primary(tester);
+      await primary(tester);
+      await primary(tester);
+    }
+
+    Future<void> finish(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('onboarding-primary')));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
+      testWidgets('$platform: the switch is on by default and finish enables it', (tester) async {
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          await toOath(tester);
+          expect(find.text('Start Knight Rise when you sign in'), findsOneWidget);
+          expect(tester.widget<SwitchListTile>(find.byKey(const Key('launch-at-login-switch'))).value, isTrue);
+          await finish(tester);
+          expect(launch.sets, [true]);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
+
+    testWidgets('turning it off applies false', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        await toOath(tester);
+        await tester.tap(find.byKey(const Key('launch-at-login-switch')));
+        await tester.pumpAndSettle();
+        expect(tester.widget<SwitchListTile>(find.byKey(const Key('launch-at-login-switch'))).value, isFalse);
+        await finish(tester);
+        expect(launch.sets, [false]);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a registration failure still completes onboarding', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        launch.throwOnSet = StateError('boom');
+        await toOath(tester);
+        await finish(tester);
+        expect(settings.current.onboardingCompleted, isTrue);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+      testWidgets('$platform: no switch and no registration', (tester) async {
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          await toOath(tester);
+          expect(find.byKey(const Key('launch-at-login-switch')), findsNothing);
+          await finish(tester);
+          expect(launch.sets, isEmpty);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
+
+    testWidgets('Arabic copy, no overflow at 2x text on a narrow window (Oath step)', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        tester.view
+          ..physicalSize = const Size(400, 640)
+          ..devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        final locale = LocaleCubit(settings);
+        addTearDown(locale.close);
+        await locale.load();
+        await locale.setLocale(const Locale('ar'));
+        final permission = NotificationPermissionCubit(gateway, reconciler);
+        addTearDown(permission.close);
+        await permission.check();
+        await tester.pumpWidget(
+          BlocProvider.value(value: permission, child: localizedApp(locale, const OnboardingPage())),
+        );
+        await tester.pumpAndSettle();
+        await primary(tester);
+        await primary(tester);
+        await primary(tester);
+        // Scaled on the Oath step; the sweep below covers every step at 2x.
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        await tester.pumpAndSettle();
+        expect(find.text('ابدأ Knight Rise عند تسجيل الدخول'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  });
+
+  group('no overflow on any step at 400x640 and 2x text', () {
+    for (final code in const ['en', 'ar']) {
+      testWidgets(code, (tester) async {
+        tester.view
+          ..physicalSize = const Size(400, 640)
+          ..devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        final locale = LocaleCubit(settings);
+        addTearDown(locale.close);
+        await locale.load();
+        await locale.setLocale(Locale(code));
+        final permission = NotificationPermissionCubit(gateway, reconciler);
+        addTearDown(permission.close);
+        await permission.check();
+        await tester.pumpWidget(
+          BlocProvider.value(value: permission, child: localizedApp(locale, const OnboardingPage())),
+        );
+        await tester.pumpAndSettle();
+        for (var step = 0; step < 4; step++) {
+          expect(tester.takeException(), isNull, reason: 'step ${step + 1}');
+          if (step < 3) {
+            await tester.ensureVisible(find.byKey(const Key('onboarding-primary')));
+            await primary(tester);
+          }
+        }
+      });
+    }
   });
 }

@@ -199,4 +199,34 @@ void main() {
       verifyNever(() => alarm.tick());
     });
   });
+
+  test('timer beats measure their lag; a beat that is on time has none', () {
+    fakeAsync((async) {
+      final c = FixedClock(at(cairo, 2026, 10, 9, 10, 0, 30));
+      final h = DesktopHeartbeat(c, alarm, sync, maintain, _FixedLocation())..start();
+      expect(h.timerLag, isNull, reason: 'nothing measured before the first timer beat');
+      c.advance(const Duration(seconds: 31));
+      async.elapse(const Duration(seconds: 31));
+      // The monotonic Stopwatch is not faked and the timer fired on schedule.
+      expect(h.timerLag, Duration.zero);
+      h.dispose();
+    });
+  });
+
+  group('beatNow', () {
+    test('runs a beat when running', () async {
+      await heartbeat.beatNow();
+      verify(() => alarm.tick()).called(1);
+      expect(heartbeat.lastBeatAt, clock.now());
+    });
+
+    test('is a no-op before start and after dispose', () async {
+      final idle = DesktopHeartbeat(clock, alarm, sync, maintain, _FixedLocation());
+      await idle.beatNow();
+      heartbeat.dispose();
+      await heartbeat.beatNow();
+      verifyNever(() => alarm.tick());
+      expect(idle.isRunning, isFalse);
+    });
+  });
 }

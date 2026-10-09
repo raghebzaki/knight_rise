@@ -25,12 +25,14 @@ class MacosLaunchAtLogin implements LaunchAtLogin {
   }
 
   /// Opens System Settings > Login Items, where the user approves a pending
-  /// registration. Best effort.
-  Future<void> openSettings() async {
+  /// registration. Best effort; returns whether the native call succeeded.
+  Future<bool> openSettings() async {
     try {
       await _channel.invokeMethod<void>('openLoginItemsSettings');
+      return true;
     } on Object catch (e) {
       debugPrint('[launch-at-login] openLoginItemsSettings failed: $e');
+      return false;
     }
   }
 

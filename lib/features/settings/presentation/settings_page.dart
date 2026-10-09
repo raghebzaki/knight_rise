@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:knight_rise/core/config/app_info.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/shortcuts/shortcuts_dialog.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
@@ -104,13 +105,15 @@ class _SettingsView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SwitchListTile(
-                    key: const Key('hapticsSwitch'),
-                    title: Text(l.settingsHaptics),
-                    subtitle: Text(l.settingsHapticsSubtitle),
-                    value: state.settings.hapticsEnabled,
-                    onChanged: (v) => cubit.setHapticsEnabled(value: v),
-                  ),
+                  // Desktops have no haptic motor: the toggle would do nothing.
+                  if (!isDesktopPlatform(defaultTargetPlatform))
+                    SwitchListTile(
+                      key: const Key('hapticsSwitch'),
+                      title: Text(l.settingsHaptics),
+                      subtitle: Text(l.settingsHapticsSubtitle),
+                      value: state.settings.hapticsEnabled,
+                      onChanged: (v) => cubit.setHapticsEnabled(value: v),
+                    ),
                 ],
               ),
               _Group(
