@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,6 +21,7 @@ import 'package:knight_rise/features/cycle/presentation/pages/break_page.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/cycle_snapshot.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/planner_models.dart';
+import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
 import 'package:knight_rise/l10n/app_locales.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 import 'package:knight_rise/l10n/generated/app_localizations_ar.dart';
@@ -136,6 +138,7 @@ void main() {
     Locale? locale,
     Size size = const Size(1300, 900),
     List<Routine>? routines,
+    Widget Function(Widget child)? wrap,
   }) async {
     if (routines != null) {
       for (final r in routines) {
@@ -165,7 +168,7 @@ void main() {
               platformShell: shell,
               nativeMenu: native,
               toggleFocusShield: ({required active}) async => shieldToggles.add(active),
-              child: child!,
+              child: wrap == null ? child! : wrap(child!),
             ),
           ),
         ),
@@ -649,6 +652,36 @@ void main() {
       expect(byIntent(LogWaterIntent).onSelectedIntent, isNotNull);
       expect(byIntent(ShowShortcutsIntent).onSelectedIntent, isNotNull);
     });
+
+    platformTest(
+      'the router mounting in a build outside a frame does not rebuild during that build',
+      TargetPlatform.macOS,
+      (tester) async {
+        // On launch the root widget is attached from a timer (idle phase, not inside a frame) and the router sets its
+        // initial route while it is first built: the menu refresh must wait for the frame. Reproduced by inserting the
+        // router (inside the splash overlay, as the app does) and running that build directly.
+        final showRouter = ValueNotifier(false);
+        addTearDown(showRouter.dispose);
+        await pumpApp(
+          tester,
+          native: null,
+          wrap: (child) => SplashOverlay(
+            show: false,
+            onFinished: () {},
+            child: ValueListenableBuilder<bool>(
+              valueListenable: showRouter,
+              builder: (_, show, _) => show ? child : const SizedBox.shrink(),
+            ),
+          ),
+        );
+        showRouter.value = true;
+        expect(SchedulerBinding.instance.schedulerPhase, SchedulerPhase.idle);
+        tester.binding.buildOwner!.buildScope(tester.binding.rootElement!);
+        expect(tester.takeException(), isNull);
+        await tester.pump();
+        expect(find.byType(PlatformMenuBar), findsOneWidget);
+      },
+    );
 
     platformTest('there is no menu bar off macOS', TargetPlatform.windows, (tester) async {
       await pumpApp(tester, native: null);

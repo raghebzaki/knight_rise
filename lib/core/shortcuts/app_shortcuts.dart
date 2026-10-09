@@ -185,14 +185,13 @@ class _AppShortcutsState extends State<AppShortcuts> {
     ]);
     if (signature == _signature) return;
     _signature = signature;
-    final scheduler = SchedulerBinding.instance;
-    if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
-      scheduler.addPostFrameCallback((_) {
+    // Always after the frame: the router notifies while it is being built (the initial route is set in
+    // `Router.didChangeDependencies`), and on the first mount that build runs outside a frame, in the idle phase.
+    SchedulerBinding.instance
+      ..addPostFrameCallback((_) {
         if (mounted) setState(() {});
-      });
-    } else {
-      setState(() {});
-    }
+      })
+      ..ensureVisualUpdate();
   }
 
   // ------------------------------------------------------------ actions
