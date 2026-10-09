@@ -40,6 +40,13 @@ abstract class HistoryState with _$HistoryState {
 
   const HistoryState._();
 
+  /// The finalized summary for [date] (date-only), or null when none exists
+  /// (no data yet). Backs the History day detail pane; no extra queries.
+  DailySummary? summaryOn(DateTime date) {
+    final key = dateKey(date);
+    return summaries.where((s) => dateKey(s.date) == key).firstOrNull;
+  }
+
   HistorySeries get series => buildHistorySeries(summaries, today: today, range: range, routine: routine);
 }
 

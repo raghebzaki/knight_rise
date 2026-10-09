@@ -13,6 +13,7 @@ import 'package:knight_rise/core/widgets/confirm_discard.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/presentation/routine_editor_cubit.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 /// Android notification channel id of [type] (see `NotificationChannelIds`).
@@ -61,73 +62,83 @@ class _RoutineEditorView extends StatelessWidget {
     return BlocBuilder<RoutineEditorCubit, RoutineEditorState>(
       builder: (context, state) {
         final draft = state.draft;
-        return PopScope(
-          canPop: !state.isDirty,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop) return;
-            final discard = await confirmDiscard(
-              context,
-              title: l.routineEditorDiscardTitle,
-              body: l.routineEditorDiscardBody,
-              discardLabel: l.routineEditorDiscard,
-              keepLabel: l.routineEditorKeepEditing,
-            );
-            if (discard && context.mounted) Navigator.of(context).pop();
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(type.label(l)),
-              actions: [
-                TextButton(
-                  key: const Key('saveButton'),
-                  onPressed: state.canSave ? () => _save(context, cubit) : null,
-                  child: Text(l.routineEditorSave),
-                ),
-                const SizedBox(width: KnightSpacing.sm),
-              ],
-            ),
-            body: draft == null
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsetsDirectional.fromSTEB(
-                      KnightSpacing.lg,
-                      KnightSpacing.sm,
-                      KnightSpacing.lg,
-                      KnightSpacing.xxl,
-                    ),
-                    children: [
-                      KnightCard(
-                        padding: EdgeInsets.zero,
-                        child: SwitchListTile(
-                          key: const Key('enabledSwitch'),
-                          secondary: Icon(type.icon, color: context.knight.routineColor(type)),
-                          title: Text(l.routineEditorEnabled),
-                          value: draft.enabled,
-                          onChanged: (v) => cubit.setEnabled(enabled: v),
-                        ),
+        Future<bool> confirm() => confirmDiscard(
+          context,
+          title: l.routineEditorDiscardTitle,
+          body: l.routineEditorDiscardBody,
+          discardLabel: l.routineEditorDiscard,
+          keepLabel: l.routineEditorKeepEditing,
+        );
+        final inPane = SettingsPaneScope.maybeOf(context) != null;
+        return SettingsDiscardGuard(
+          dirty: state.isDirty,
+          confirm: confirm,
+          child: PopScope(
+            canPop: !state.isDirty,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) return;
+              final discard = await confirm();
+              if (discard && context.mounted) Navigator.of(context).pop();
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(type.label(l)),
+                automaticallyImplyLeading: !inPane,
+                leading: inPane
+                    ? BackButton(onPressed: () => unawaited(openSettingsRoute(context, '/settings/routines')))
+                    : null,
+                actions: [
+                  TextButton(
+                    key: const Key('saveButton'),
+                    onPressed: state.canSave ? () => _save(context, cubit) : null,
+                    child: Text(l.routineEditorSave),
+                  ),
+                  const SizedBox(width: KnightSpacing.sm),
+                ],
+              ),
+              body: draft == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        KnightSpacing.lg,
+                        KnightSpacing.sm,
+                        KnightSpacing.lg,
+                        KnightSpacing.xxl,
                       ),
-                      const SizedBox(height: KnightSpacing.md),
-                      _IntervalCard(type: type, draft: draft),
-                      const SizedBox(height: KnightSpacing.md),
-                      _TargetCard(type: type, draft: draft, waterPerTapMl: state.waterPerTapMl),
-                      const SizedBox(height: KnightSpacing.md),
-                      _ModeCard(draft: draft),
-                      if (defaultTargetPlatform == TargetPlatform.android) ...[
-                        const SizedBox(height: KnightSpacing.md),
+                      children: [
                         KnightCard(
                           padding: EdgeInsets.zero,
-                          child: ListTile(
-                            key: const Key('soundRow'),
-                            leading: const Icon(Icons.notifications_active_outlined),
-                            title: Text(l.routineEditorSound),
-                            subtitle: Text(l.routineEditorSoundHelp),
-                            trailing: const Icon(Icons.open_in_new),
-                            onTap: () => launcher.openChannelSettings(routineChannelId(type)),
+                          child: SwitchListTile(
+                            key: const Key('enabledSwitch'),
+                            secondary: Icon(type.icon, color: context.knight.routineColor(type)),
+                            title: Text(l.routineEditorEnabled),
+                            value: draft.enabled,
+                            onChanged: (v) => cubit.setEnabled(enabled: v),
                           ),
                         ),
+                        const SizedBox(height: KnightSpacing.md),
+                        _IntervalCard(type: type, draft: draft),
+                        const SizedBox(height: KnightSpacing.md),
+                        _TargetCard(type: type, draft: draft, waterPerTapMl: state.waterPerTapMl),
+                        const SizedBox(height: KnightSpacing.md),
+                        _ModeCard(draft: draft),
+                        if (defaultTargetPlatform == TargetPlatform.android) ...[
+                          const SizedBox(height: KnightSpacing.md),
+                          KnightCard(
+                            padding: EdgeInsets.zero,
+                            child: ListTile(
+                              key: const Key('soundRow'),
+                              leading: const Icon(Icons.notifications_active_outlined),
+                              title: Text(l.routineEditorSound),
+                              subtitle: Text(l.routineEditorSoundHelp),
+                              trailing: const Icon(Icons.open_in_new),
+                              onTap: () => launcher.openChannelSettings(routineChannelId(type)),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
+            ),
           ),
         );
       },
@@ -135,8 +146,9 @@ class _RoutineEditorView extends StatelessWidget {
   }
 
   Future<void> _save(BuildContext context, RoutineEditorCubit cubit) async {
+    final inPane = SettingsPaneScope.maybeOf(context) != null;
     final saved = await cubit.save();
-    if (saved && context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+    if (saved && !inPane && context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
 }
 

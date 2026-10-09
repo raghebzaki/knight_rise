@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
@@ -8,6 +9,7 @@ import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/features/cycle/presentation/widgets/routine_presentation.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/presentation/routines_cubit.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 /// The three routines with inline on/off switches; tap a row to edit it.
@@ -32,7 +34,10 @@ class _RoutinesView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.routineEditorListTitle)),
+      appBar: AppBar(
+        title: Text(l.routineEditorListTitle),
+        automaticallyImplyLeading: SettingsPaneScope.maybeOf(context) == null,
+      ),
       body: BlocBuilder<RoutinesCubit, List<Routine>?>(
         builder: (context, routines) {
           if (routines == null) return const Center(child: CircularProgressIndicator());
@@ -56,7 +61,7 @@ class _RoutinesView extends StatelessWidget {
                       subtitle: Text(
                         r.enabled ? l.routineEditorSummary(r.intervalMinutes, r.dailyTarget) : l.routineEditorOff,
                       ),
-                      onTap: () => context.push('/settings/routines/${r.type.name}'),
+                      onTap: () => unawaited(openSettingsRoute(context, '/settings/routines/${r.type.name}')),
                       trailing: Switch(
                         key: Key('routineSwitch-${r.type.name}'),
                         value: r.enabled,

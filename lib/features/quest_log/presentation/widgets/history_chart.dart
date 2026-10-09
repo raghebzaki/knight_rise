@@ -25,6 +25,9 @@ class HistoryChart extends StatelessWidget {
     required this.color,
     required this.thresholdPercent,
     required this.semanticsLabel,
+    this.showTooltip = true,
+    this.onDayHover,
+    this.onDayTap,
     super.key,
   });
 
@@ -34,6 +37,17 @@ class HistoryChart extends StatelessWidget {
   final Color color;
   final int thresholdPercent;
   final String semanticsLabel;
+
+  /// Whether touching a bar shows the built-in tooltip. Off when a detail
+  /// pane replaces it.
+  final bool showTooltip;
+
+  /// Called with the hovered day's index, or null when the pointer leaves
+  /// the bars (desktop mouse hover).
+  final ValueChanged<int?>? onDayHover;
+
+  /// Called with the index of the bar that was clicked or tapped.
+  final ValueChanged<int>? onDayTap;
 
   /// Opacity of rest-day bars.
   static const restOpacity = 0.35;
@@ -152,6 +166,13 @@ class HistoryChart extends StatelessWidget {
                         ),
                       ),
                       barTouchData: BarTouchData(
+                        handleBuiltInTouches: showTooltip,
+                        touchCallback: (event, response) =>
+                            routeHistoryTouch(event, response, onHover: onDayHover, onTap: onDayTap),
+                        mouseCursorResolver: onDayTap == null
+                            ? null
+                            : (event, response) =>
+                                  response?.spot == null ? MouseCursor.defer : SystemMouseCursors.click,
                         touchTooltipData: BarTouchTooltipData(
                           getTooltipColor: (_) => scheme.surfaceContainerHigh,
                           tooltipBorder: BorderSide(color: scheme.outline),
@@ -189,6 +210,25 @@ class HistoryChart extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Maps a chart touch to the page's intent: hover previews the bar under the
+/// pointer (null once it leaves the bars), a tap-up on a bar selects it.
+/// Taps that miss every bar are ignored.
+void routeHistoryTouch(
+  FlTouchEvent event,
+  BarTouchResponse? response, {
+  ValueChanged<int?>? onHover,
+  ValueChanged<int>? onTap,
+}) {
+  final index = response?.spot?.touchedBarGroupIndex;
+  if (event is FlPointerExitEvent) {
+    onHover?.call(null);
+  } else if (event is FlPointerHoverEvent) {
+    onHover?.call(index);
+  } else if (event is FlTapUpEvent && index != null) {
+    onTap?.call(index);
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/core/widgets/confirm_discard.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
 import 'package:knight_rise/features/work_hours/domain/work_schedule_validation.dart';
 import 'package:knight_rise/features/work_hours/domain/work_week.dart';
@@ -48,63 +49,69 @@ class _WorkHoursView extends StatelessWidget {
     final cubit = context.read<WorkHoursCubit>();
     return BlocBuilder<WorkHoursCubit, WorkHoursState>(
       builder: (context, state) {
-        return PopScope(
-          canPop: !state.isDirty,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop) return;
-            final discard = await confirmDiscard(
-              context,
-              title: l.workHoursDiscardTitle,
-              body: l.workHoursDiscardBody,
-              discardLabel: l.workHoursDiscard,
-              keepLabel: l.workHoursKeepEditing,
-            );
-            if (discard && context.mounted) Navigator.of(context).pop();
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(l.workHoursTitle),
-              actions: [
-                PopupMenuButton<_Preset>(
-                  key: const Key('presetsMenu'),
-                  tooltip: l.workHoursPresets,
-                  icon: const Icon(Icons.tune),
-                  onSelected: (p) => switch (p) {
-                    _Preset.sunThu => cubit.applySunThu(),
-                    _Preset.monFri => cubit.applyMonFri(),
-                    _Preset.custom => null,
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(value: _Preset.sunThu, child: Text(l.workHoursPresetSunThu)),
-                    PopupMenuItem(value: _Preset.monFri, child: Text(l.workHoursPresetMonFri)),
-                    PopupMenuItem(value: _Preset.custom, child: Text(l.workHoursPresetCustom)),
-                  ],
-                ),
-                IconButton(
-                  key: const Key('copySunday'),
-                  tooltip: l.workHoursCopySunday,
-                  icon: const Icon(Icons.content_copy_outlined),
-                  onPressed: state.loaded ? cubit.copySundayToWorkDays : null,
-                ),
-                TextButton(
-                  key: const Key('saveButton'),
-                  onPressed: state.canSave ? () => _save(context, cubit) : null,
-                  child: Text(l.workHoursSave),
-                ),
-                const SizedBox(width: KnightSpacing.sm),
-              ],
-            ),
-            body: !state.loaded
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsetsDirectional.fromSTEB(
-                      KnightSpacing.lg,
-                      KnightSpacing.sm,
-                      KnightSpacing.lg,
-                      KnightSpacing.xxl,
-                    ),
-                    children: [for (final day in weekdaysSundayFirst) _DayCard(weekday: day, state: state)],
+        Future<bool> confirm() => confirmDiscard(
+          context,
+          title: l.workHoursDiscardTitle,
+          body: l.workHoursDiscardBody,
+          discardLabel: l.workHoursDiscard,
+          keepLabel: l.workHoursKeepEditing,
+        );
+        return SettingsDiscardGuard(
+          dirty: state.isDirty,
+          confirm: confirm,
+          child: PopScope(
+            canPop: !state.isDirty,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) return;
+              final discard = await confirm();
+              if (discard && context.mounted) Navigator.of(context).pop();
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(l.workHoursTitle),
+                automaticallyImplyLeading: SettingsPaneScope.maybeOf(context) == null,
+                actions: [
+                  PopupMenuButton<_Preset>(
+                    key: const Key('presetsMenu'),
+                    tooltip: l.workHoursPresets,
+                    icon: const Icon(Icons.tune),
+                    onSelected: (p) => switch (p) {
+                      _Preset.sunThu => cubit.applySunThu(),
+                      _Preset.monFri => cubit.applyMonFri(),
+                      _Preset.custom => null,
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: _Preset.sunThu, child: Text(l.workHoursPresetSunThu)),
+                      PopupMenuItem(value: _Preset.monFri, child: Text(l.workHoursPresetMonFri)),
+                      PopupMenuItem(value: _Preset.custom, child: Text(l.workHoursPresetCustom)),
+                    ],
                   ),
+                  IconButton(
+                    key: const Key('copySunday'),
+                    tooltip: l.workHoursCopySunday,
+                    icon: const Icon(Icons.content_copy_outlined),
+                    onPressed: state.loaded ? cubit.copySundayToWorkDays : null,
+                  ),
+                  TextButton(
+                    key: const Key('saveButton'),
+                    onPressed: state.canSave ? () => _save(context, cubit) : null,
+                    child: Text(l.workHoursSave),
+                  ),
+                  const SizedBox(width: KnightSpacing.sm),
+                ],
+              ),
+              body: !state.loaded
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        KnightSpacing.lg,
+                        KnightSpacing.sm,
+                        KnightSpacing.lg,
+                        KnightSpacing.xxl,
+                      ),
+                      children: [for (final day in weekdaysSundayFirst) _DayCard(weekday: day, state: state)],
+                    ),
+            ),
           ),
         );
       },
@@ -112,8 +119,9 @@ class _WorkHoursView extends StatelessWidget {
   }
 
   Future<void> _save(BuildContext context, WorkHoursCubit cubit) async {
+    final inPane = SettingsPaneScope.maybeOf(context) != null;
     final saved = await cubit.save();
-    if (saved && context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+    if (saved && !inPane && context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
 }
 

@@ -8,6 +8,8 @@ import 'package:knight_rise/core/config/app_info.dart';
 import 'package:knight_rise/core/config/flavor.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
+import 'package:knight_rise/core/layout/adaptive_columns.dart';
+import 'package:knight_rise/core/layout/window_size.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
@@ -199,39 +201,51 @@ class _Dashboard extends StatelessWidget {
   final bool showPausedBanner;
   final VoidCallback onDismissPaused;
 
+  /// Permission card through override chips: what is happening now.
+  List<Widget> _statusWidgets() => [
+    const _NotificationPermissionCard(),
+    if (showPausedBanner) _PausedBanner(onDismiss: onDismissPaused),
+    if (health != null) _HealthChip(cubit: health!),
+    _QuestHero(snapshot: snapshot),
+    const SizedBox(height: KnightSpacing.lg),
+    _NextUpCard(snapshot: snapshot),
+    const SizedBox(height: KnightSpacing.lg),
+    if (snapshot.activeShield != null) ...[
+      ShieldBanner(snapshot: snapshot, shield: snapshot.activeShield!),
+      const SizedBox(height: KnightSpacing.lg),
+    ] else if (snapshot.onDuty) ...[
+      ShieldEntry(onDuty: snapshot.onDuty),
+      const SizedBox(height: KnightSpacing.lg),
+    ],
+    if (showOverrideChips(snapshot)) ...[
+      OverrideChips(dayOverride: snapshot.todayOverride),
+      const SizedBox(height: KnightSpacing.lg),
+    ],
+  ];
+
+  List<Widget> _routineWidgets() => [
+    for (final view in snapshot.routines) ...[
+      _RoutineCard(view: view, snapshot: snapshot),
+      const SizedBox(height: KnightSpacing.md),
+    ],
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsetsDirectional.fromSTEB(
-        KnightSpacing.lg,
-        KnightSpacing.sm,
-        KnightSpacing.lg,
-        KnightSpacing.xxl,
-      ),
-      children: [
-        const _NotificationPermissionCard(),
-        if (showPausedBanner) _PausedBanner(onDismiss: onDismissPaused),
-        if (health != null) _HealthChip(cubit: health!),
-        _QuestHero(snapshot: snapshot),
-        const SizedBox(height: KnightSpacing.lg),
-        _NextUpCard(snapshot: snapshot),
-        const SizedBox(height: KnightSpacing.lg),
-        if (snapshot.activeShield != null) ...[
-          ShieldBanner(snapshot: snapshot, shield: snapshot.activeShield!),
-          const SizedBox(height: KnightSpacing.lg),
-        ] else if (snapshot.onDuty) ...[
-          ShieldEntry(onDuty: snapshot.onDuty),
-          const SizedBox(height: KnightSpacing.lg),
-        ],
-        if (showOverrideChips(snapshot)) ...[
-          OverrideChips(dayOverride: snapshot.todayOverride),
-          const SizedBox(height: KnightSpacing.lg),
-        ],
-        for (final view in snapshot.routines) ...[
-          _RoutineCard(view: view, snapshot: snapshot),
-          const SizedBox(height: KnightSpacing.md),
-        ],
-      ],
+    const padding = EdgeInsetsDirectional.fromSTEB(
+      KnightSpacing.lg,
+      KnightSpacing.sm,
+      KnightSpacing.lg,
+      KnightSpacing.xxl,
+    );
+    if (!context.isMultiPane) {
+      return ListView(padding: padding, children: [..._statusWidgets(), ..._routineWidgets()]);
+    }
+    // Two independently scrolling columns: the status stack on the start
+    // side, the routine cards on the end side, so neither pushes the other.
+    return AdaptiveTwoColumn(
+      start: ListView(padding: padding.copyWith(end: 0), children: _statusWidgets()),
+      end: ListView(padding: padding.copyWith(start: 0), children: _routineWidgets()),
     );
   }
 }

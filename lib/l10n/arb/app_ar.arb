@@ -306,5 +306,11 @@
   "trayOpen": "فتح Knight Rise",
   "trayLowerShield": "إنهاء الدرع",
   "trayLaunchAtLogin": "التشغيل عند تسجيل الدخول",
-  "trayQuit": "إنهاء Knight Rise"
+  "trayQuit": "إنهاء Knight Rise",
+  "settingsSelectSection": "اختر إعدادًا لعرضه هنا",
+  "historyDayDetailTitle": "تفاصيل اليوم",
+  "historyDayPinned": "مثبّت",
+  "historyDayUnpin": "إلغاء تثبيت اليوم",
+  "historyDayPlaceholder": "مرّر المؤشر فوق عمود أو اختر يومًا لعرض تفاصيله.",
+  "historyDayRoutines": "الروتينات"
 }

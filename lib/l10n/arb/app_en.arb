@@ -718,5 +718,29 @@
   "trayQuit": "Quit Knight Rise",
   "@trayQuit": {
     "description": "Tray menu item that fully exits the app."
+  },
+  "settingsSelectSection": "Choose a setting to see it here",
+  "@settingsSelectSection": {
+    "description": "Settings detail pane placeholder on wide windows before a section is chosen."
+  },
+  "historyDayDetailTitle": "Day detail",
+  "@historyDayDetailTitle": {
+    "description": "Title of the History day detail pane on wide windows."
+  },
+  "historyDayPinned": "Pinned",
+  "@historyDayPinned": {
+    "description": "Badge in the day detail pane when the day was pinned by a click."
+  },
+  "historyDayUnpin": "Unpin day",
+  "@historyDayUnpin": {
+    "description": "Tooltip of the button that releases the pinned day."
+  },
+  "historyDayPlaceholder": "Hover over a bar or select a day to see its details.",
+  "@historyDayPlaceholder": {
+    "description": "Day detail pane text when no day has data to show."
+  },
+  "historyDayRoutines": "Routines",
+  "@historyDayRoutines": {
+    "description": "Heading of the per-routine breakdown in the day detail pane."
   }
 }

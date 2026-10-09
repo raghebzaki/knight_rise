@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
+import 'package:knight_rise/core/layout/adaptive_columns.dart';
+import 'package:knight_rise/core/layout/window_size.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/core/theme/knight_tokens.dart';
 import 'package:knight_rise/core/theme/text_scale.dart';
@@ -85,34 +87,40 @@ class _QuestLogBody extends StatelessWidget {
     // Day 1: nothing finalized and nothing done yet.
     final cleanSlate =
         view.history.isEmpty && view.streak.best == 0 && today.routines.every((r) => r.done == 0) && today.waterMl == 0;
-    return ListView(
-      padding: const EdgeInsetsDirectional.fromSTEB(
-        KnightSpacing.lg,
-        KnightSpacing.sm,
-        KnightSpacing.lg,
-        KnightSpacing.xxl,
-      ),
-      children: [
-        if (cleanSlate) ...[const _CleanSlate(), const SizedBox(height: KnightSpacing.lg)],
-        _Hero(view: view),
-        const SizedBox(height: KnightSpacing.lg),
-        for (final r in today.routines) ...[
-          _RoutineProgressCard(today: today, routine: r, lastDoneAt: view.lastDoneAt[r.type]),
-          const SizedBox(height: KnightSpacing.md),
-        ],
-        if (hydrationOn) ...[
-          const SizedBox(height: KnightSpacing.sm),
-          _WaterLogger(waterMl: today.waterMl),
-          const SizedBox(height: KnightSpacing.lg),
-        ],
-        _FocusCard(todayMinutes: today.focusMinutes, weekMinutes: view.focusMinutesWeek),
+    final leading = <Widget>[
+      if (cleanSlate) ...[const _CleanSlate(), const SizedBox(height: KnightSpacing.lg)],
+      _Hero(view: view),
+      const SizedBox(height: KnightSpacing.lg),
+    ];
+    final details = <Widget>[
+      for (final r in today.routines) ...[
+        _RoutineProgressCard(today: today, routine: r, lastDoneAt: view.lastDoneAt[r.type]),
+        const SizedBox(height: KnightSpacing.md),
       ],
+      if (hydrationOn) ...[
+        const SizedBox(height: KnightSpacing.sm),
+        _WaterLogger(waterMl: today.waterMl),
+        const SizedBox(height: KnightSpacing.lg),
+      ],
+      _FocusCard(todayMinutes: today.focusMinutes, weekMinutes: view.focusMinutesWeek),
+    ];
+    const padding = EdgeInsetsDirectional.fromSTEB(
+      KnightSpacing.lg,
+      KnightSpacing.sm,
+      KnightSpacing.lg,
+      KnightSpacing.xxl,
+    );
+    if (!context.isMultiPane) return ListView(padding: padding, children: [...leading, ...details]);
+    // Hero on the start side, the detail cards beside it; each scrolls alone.
+    return AdaptiveTwoColumn(
+      start: ListView(padding: padding.copyWith(end: 0), children: leading),
+      end: ListView(padding: padding.copyWith(start: 0), children: details),
     );
   }
 }
 
 /// "{measure} / {goal}" for a routine: ml for hydration, counts otherwise.
-String _measureText(AppLocalizations l, DailySummary day, RoutineDaySummary r) {
+String routineMeasureText(AppLocalizations l, DailySummary day, RoutineDaySummary r) {
   final m = day.measureOf(r);
   return r.type == RoutineType.hydration ? l.waterProgress(m.value, m.goal) : l.progressOf(m.value, m.goal);
 }
@@ -144,7 +152,7 @@ class _Hero extends StatelessWidget {
                 RingSegment(
                   progress: today.measureOf(r).fraction,
                   color: tokens.routineColor(r.type),
-                  label: '${r.type.label(l)} ${_measureText(l, today, r)}',
+                  label: '${r.type.label(l)} ${routineMeasureText(l, today, r)}',
                 ),
             ],
             center: Text('$percent%', style: text.displayMedium),
@@ -261,7 +269,7 @@ class _RoutineProgressCard extends StatelessWidget {
         ? l.questNotYet
         : l.questLastAt(DateFormat.Hm(Localizations.localeOf(context).toLanguageTag()).format(last));
 
-    final measure = _measureText(l, today, routine);
+    final measure = routineMeasureText(l, today, routine);
     final large = context.isLargeText;
     return KnightCard(
       key: Key('quest-routine-${routine.type.name}'),

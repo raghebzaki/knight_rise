@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/config/app_info.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/theme/knight_dimens.dart';
@@ -12,6 +11,7 @@ import 'package:knight_rise/core/theme/widgets/knight_card.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/features/settings/presentation/theme_cubit.dart';
 import 'package:knight_rise/features/settings/presentation/widgets/language_selector.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_format.dart';
@@ -62,6 +62,8 @@ class _SettingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).toLanguageTag();
+    final current = SettingsPaneScope.maybeOf(context)?.location;
+    final selectedColor = Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
     return Scaffold(
       appBar: AppBar(title: Text(l.settingsTitle)),
       body: BlocBuilder<SettingsCubit, SettingsState>(
@@ -119,14 +121,18 @@ class _SettingsView extends StatelessWidget {
                   ListTile(
                     key: const Key('routinesRow'),
                     title: Text(l.settingsRoutines),
-                    onTap: () => context.push('/settings/routines'),
+                    selected: settingsPathSelected(current, '/settings/routines'),
+                    selectedTileColor: selectedColor,
+                    onTap: () => unawaited(openSettingsRoute(context, '/settings/routines')),
                     trailing: const Icon(Icons.chevron_right),
                   ),
                   ListTile(
                     key: const Key('workHoursRow'),
                     title: Text(l.settingsWorkHours),
                     subtitle: Text(workScheduleSummary(l, locale, state.schedule)),
-                    onTap: () => context.push('/settings/work-hours'),
+                    selected: settingsPathSelected(current, '/settings/work-hours'),
+                    selectedTileColor: selectedColor,
+                    onTap: () => unawaited(openSettingsRoute(context, '/settings/work-hours')),
                     trailing: const Icon(Icons.chevron_right),
                   ),
                 ],
@@ -157,9 +163,11 @@ class _SettingsView extends StatelessWidget {
                         key: const Key('deviceHealthRow'),
                         title: Text(l.settingsDeviceHealth),
                         subtitle: health.loaded ? Text(count == 0 ? l.healthAllGood : l.healthIssues(count)) : null,
+                        selected: settingsPathSelected(current, ReservedRoutes.deviceHealth),
+                        selectedTileColor: selectedColor,
                         onTap: () async {
                           final healthCubit = context.read<DeviceHealthCubit>();
-                          await context.push(ReservedRoutes.deviceHealth);
+                          await openSettingsRoute(context, ReservedRoutes.deviceHealth);
                           unawaited(healthCubit.refresh());
                         },
                         trailing: const Icon(Icons.chevron_right),

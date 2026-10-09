@@ -11,6 +11,7 @@ import 'package:knight_rise/features/device_health/domain/health_issue.dart';
 import 'package:knight_rise/features/device_health/domain/oem_guide.dart';
 import 'package:knight_rise/features/device_health/presentation/device_health_cubit.dart';
 import 'package:knight_rise/features/device_health/presentation/oem_guide_text.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
 /// Permission and battery status with fixes and per-maker guides. The
@@ -48,7 +49,10 @@ class _DeviceHealthPageState extends State<DeviceHealthPage> {
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        appBar: AppBar(title: Text(l.healthTitle)),
+        appBar: AppBar(
+          title: Text(l.healthTitle),
+          automaticallyImplyLeading: SettingsPaneScope.maybeOf(context) == null,
+        ),
         body: BlocBuilder<DeviceHealthCubit, DeviceHealthState>(
           builder: (context, state) {
             final report = state.report;

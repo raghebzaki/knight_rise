@@ -14,7 +14,7 @@ import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart'
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/routines/presentation/routine_editor_page.dart';
 import 'package:knight_rise/features/routines/presentation/routines_page.dart';
-import 'package:knight_rise/features/settings/presentation/settings_page.dart';
+import 'package:knight_rise/features/settings/presentation/settings_list_detail.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_hours_page.dart';
 
 /// Routes. `/` (Today), `/quest` (Quest Log), `/history` and `/settings` are
@@ -23,7 +23,9 @@ import 'package:knight_rise/features/work_hours/presentation/work_hours_page.dar
 /// dev tools are full screen, above the shell.
 /// The Settings branch holds `/settings`, `/settings/work-hours`,
 /// `/settings/device-health`, `/settings/routines` and
-/// `/settings/routines/:type` (invalid type redirects to the list).
+/// `/settings/routines/:type` (invalid type redirects to the list), inside a
+/// [SettingsShell] that adds the list pane beside them when the window is
+/// multi-pane (compact: pages are pushed over the list as before).
 /// `/break?types=hydration,eyeRest` is the notification-tap target;
 /// invalid or empty `types` redirect to `/`.
 /// `/onboarding` is the first-run flow: with a [gate] that is not completed
@@ -49,22 +51,35 @@ GoRouter buildRouter({String initialLocation = '/', OnboardingGate? gate}) => Go
         ),
         StatefulShellBranch(
           routes: [
-            GoRoute(
-              path: '/settings',
-              builder: (_, _) => const SettingsPage(),
+            ShellRoute(
+              builder: (_, state, child) => SettingsShell(location: state.uri.path, child: child),
               routes: [
-                GoRoute(path: 'work-hours', builder: (_, _) => const WorkHoursPage()),
-                GoRoute(path: 'device-health', builder: (_, _) => const DeviceHealthPage()),
                 GoRoute(
-                  path: 'routines',
-                  builder: (_, _) => const RoutinesPage(),
+                  path: '/settings',
+                  pageBuilder: (_, state) => SettingsRoutePage(key: state.pageKey, child: const SettingsHome()),
                   routes: [
                     GoRoute(
-                      path: ':type',
-                      redirect: (_, state) =>
-                          routineTypeFromParam(state.pathParameters['type']) == null ? '/settings/routines' : null,
-                      builder: (_, state) =>
-                          RoutineEditorPage(type: routineTypeFromParam(state.pathParameters['type'])!),
+                      path: 'work-hours',
+                      pageBuilder: (_, state) => SettingsRoutePage(key: state.pageKey, child: const WorkHoursPage()),
+                    ),
+                    GoRoute(
+                      path: 'device-health',
+                      pageBuilder: (_, state) => SettingsRoutePage(key: state.pageKey, child: const DeviceHealthPage()),
+                    ),
+                    GoRoute(
+                      path: 'routines',
+                      pageBuilder: (_, state) => SettingsRoutePage(key: state.pageKey, child: const RoutinesPage()),
+                      routes: [
+                        GoRoute(
+                          path: ':type',
+                          redirect: (_, state) =>
+                              routineTypeFromParam(state.pathParameters['type']) == null ? '/settings/routines' : null,
+                          pageBuilder: (_, state) => SettingsRoutePage(
+                            key: state.pageKey,
+                            child: RoutineEditorPage(type: routineTypeFromParam(state.pathParameters['type'])!),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
