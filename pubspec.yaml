@@ -27,6 +27,7 @@ dependencies:
     sdk: flutter
   path: ^1.9.1
   path_provider: ^2.1.6
+  ffi: ^2.1.3
   flutter_timezone: ^5.1.1
   meta: ^1.19.0
   flutter_local_notifications: ^22.3.1
@@ -55,6 +56,8 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
   fake_async: ^1.3.3
+  msix: 3.18.0
+  yaml: ^3.1.3
 
 flutter:
   uses-material-design: true
@@ -82,3 +85,39 @@ flutter:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter-Variable.ttf
+
+# Windows MSIX package (`dart run msix:create`, see docs/RELEASE.md and docs/QA_DESKTOP.md).
+# test/core/config/msix_config_test.dart keeps the identifiers below in sync with the Dart constants.
+msix_config:
+  display_name: Knight Rise
+  # Shown in the installer. Not the signing identity: that is the certificate's Subject, which msix reads from the
+  # certificate (the msix test certificate for testers). A Store or real-certificate build must also pass
+  # `--publisher "<certificate Subject>"`, and the Subject must match the manifest Publisher exactly.
+  publisher_display_name: com.ragheb
+  # Same string as kWindowsAppUserModelId. An unpackaged build registers that string as its AppUserModelID; a packaged
+  # build gets "<PackageFamilyName>!App" instead and the notification plugin switches to package identity.
+  # Keeping them equal makes the package name recognisable next to the unpackaged AUMID in logs and registry.
+  identity_name: com.ragheb.KnightRise
+  # a.b.c.d from pubspec `version` (1.0.0+1 -> 1.0.0.0). The last part must stay 0 for Microsoft Store uploads.
+  msix_version: 1.0.0.0
+  logo_path: assets/branding/app_icon.png
+  # No `capabilities:` on purpose: an offline app needs no internetClient or other capability (msix always adds the
+  # mandatory runFullTrust for a desktop app).
+  languages: en-us, ar
+  output_name: knight_rise
+  architecture: x64
+  # CI and tool/ scripts run `flutter build windows --release` first.
+  build_windows: false
+  store: false
+  # Launch at login is on by default; the user can turn it off in Settings > Apps > Startup. `--autostart` makes the
+  # runner start hidden (windows/runner/main.cpp) and is what LaunchArguments.autostart reads in Dart.
+  startup_task:
+    task_id: KnightRiseStartup
+    enabled: true
+    parameters: --autostart
+  # COM activator for toast clicks and actions; same GUID as kWindowsToastActivatorGuid. The arguments are what
+  # Windows passes when it has to start a closed app for a toast (cold start); a running app is activated in-process.
+  toast_activator:
+    clsid: 108AF7F5-1A25-4D8E-A8F4-83AF0606E992
+    arguments: -ToastActivated
+    display_name: Knight Rise

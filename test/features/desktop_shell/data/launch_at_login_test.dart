@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/platform/launch_arguments.dart';
 import 'package:knight_rise/features/desktop_shell/data/macos_launch_at_login.dart';
+import 'package:knight_rise/features/desktop_shell/data/package_identity.dart';
 import 'package:knight_rise/features/desktop_shell/data/windows_launch_at_login.dart';
 import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 
@@ -131,6 +132,40 @@ void main() {
       expect(await impl.launchedAtLogin(), isFalse);
       LaunchArguments.values = const ['--autostart'];
       expect(await impl.launchedAtLogin(), isTrue);
+    });
+  });
+
+  group('WindowsLaunchAtLogin in an MSIX package', () {
+    test('is managed by the system and never touches the Run key', () async {
+      final store = _MemoryStore()..values['KnightRise'] = 'stale';
+      final impl = WindowsLaunchAtLogin(
+        store: store,
+        executable: r'C:\x\knight_rise.exe',
+        packageIdentity: const FixedPackageIdentity(isPackaged: true),
+      );
+      expect(await impl.status(), LaunchAtLoginStatus.managedBySystem);
+      expect(await impl.setEnabled(true), LaunchAtLoginStatus.managedBySystem);
+      expect(await impl.setEnabled(false), LaunchAtLoginStatus.managedBySystem);
+      expect(store.values, {'KnightRise': 'stale'}, reason: 'virtualized HKCU: no reads or writes');
+      store.failing = true;
+      expect(await impl.status(), LaunchAtLoginStatus.managedBySystem, reason: 'the store is not even read');
+    });
+
+    test('an unpackaged process keeps using the Run key', () async {
+      final impl = WindowsLaunchAtLogin(
+        store: _MemoryStore(),
+        executable: r'C:\x\knight_rise.exe',
+        packageIdentity: const FixedPackageIdentity(isPackaged: false),
+      );
+      expect(await impl.setEnabled(true), LaunchAtLoginStatus.enabled);
+    });
+  });
+
+  group('FfiPackageIdentity', () {
+    test('only APPMODEL_ERROR_NO_PACKAGE means unpackaged', () {
+      expect(FfiPackageIdentity.isPackagedResult(15700), isFalse);
+      expect(FfiPackageIdentity.isPackagedResult(0), isTrue); // ERROR_SUCCESS
+      expect(FfiPackageIdentity.isPackagedResult(122), isTrue); // ERROR_INSUFFICIENT_BUFFER (zero-length probe)
     });
   });
 

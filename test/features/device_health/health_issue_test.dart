@@ -177,6 +177,16 @@ void desktopIssueTests() {
       );
     });
 
+    test('launch at login: managed by the system raises nothing', () {
+      for (final platform in [HealthPlatform.macos, HealthPlatform.windows]) {
+        expect(
+          issuesOf(desktopReport(platform: platform, login: LaunchAtLoginStatus.managedBySystem))
+              .where((i) => i.kind == HealthKind.launchAtLogin),
+          isEmpty,
+        );
+      }
+    });
+
     test('launch at login: disabled / needs approval warn, unavailable informs, enabled and unknown are fine', () {
       for (final platform in [HealthPlatform.macos, HealthPlatform.windows]) {
         for (final s in [LaunchAtLoginStatus.disabled, LaunchAtLoginStatus.requiresApproval]) {

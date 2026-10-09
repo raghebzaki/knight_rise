@@ -132,6 +132,60 @@ plugin model fields keep their names and the drawables survive shrinking.
 install build N, let reminders schedule, install build N+1 over it, reboot,
 and confirm reminders still fire.
 
+## Desktop (macOS and Windows)
+
+CI job `desktop` (`.github/workflows/ci.yaml`) runs analyze and tests on `macos-latest` and `windows-latest`, builds the
+release and uploads artifacts: `knight-rise-macos` (`knight_rise-macos-<version>.zip`) and `knight-rise-windows-msix`
+(`knight_rise.msix` plus `knight_rise_test.cer`). Both are for testers; production signing is manual and uses no
+secrets from the repository.
+
+### macOS
+
+```sh
+bash tool/build_macos_release.sh     # flutter build macos --release --dart-define=FLAVOR=prod, then the verifier
+bash tool/verify_macos_release.sh    # checks only: sandbox entitlements, no JIT/network, Info.plist, tray icon, EN/AR
+```
+
+The verifier fails on any `allow-jit`, `network.client` or `network.server` entitlement (the app is offline); add one
+deliberately to `macos/Runner/Release.entitlements` and to the script if a plugin ever needs it. It then zips the app to
+`build/dist/knight_rise-macos-<version>.zip`.
+
+Developer ID signing and notarization (manual):
+
+```sh
+codesign --force --deep --options runtime --timestamp \
+  --entitlements macos/Runner/Release.entitlements \
+  --sign "Developer ID Application: <Name> (<TEAMID>)" build/macos/Build/Products/Release/knight_rise.app
+ditto -c -k --keepParent build/macos/Build/Products/Release/knight_rise.app build/dist/notarize.zip
+xcrun notarytool submit build/dist/notarize.zip --keychain-profile "<profile>" --wait
+xcrun stapler staple build/macos/Build/Products/Release/knight_rise.app
+spctl -a -vv build/macos/Build/Products/Release/knight_rise.app
+```
+
+Create the keychain profile once with `xcrun notarytool store-credentials`. Re-zip the stapled app for distribution.
+
+### Windows (MSIX)
+
+```sh
+flutter build windows --release
+dart run msix:create --build-windows false --install-certificate false
+# -> build/windows/x64/runner/Release/knight_rise.msix
+```
+
+Configuration lives in `msix_config` in `pubspec.yaml` (identity `com.ragheb.KnightRise`, startup task with
+`--autostart`, toast activator); `test/core/config/msix_config_test.dart` keeps it in sync with
+`lib/core/config/background_ids.dart`.
+
+- **Versioning:** `msix_version` is `<pubspec name part>.0`, so `1.0.0+1` becomes `1.0.0.0`. Bump it with the
+  pubspec `version`; the last number must stay 0 for the Microsoft Store.
+- **Testers / CI:** with no certificate configured msix signs with its built-in test certificate (publisher `CN=msix`).
+  Testers trust the exported `knight_rise_test.cer` once (Local Machine > Trusted People), then install the `.msix`.
+- **Real signing:** buy or obtain a code-signing certificate and build with
+  `dart run msix:create --certificate-path <file.pfx> --certificate-password <pw> --publisher "<certificate Subject>"`.
+  The Subject must match the manifest publisher exactly, and `publisher_display_name` should match it for the Store.
+  Never commit certificates or passwords (`*.pfx` is git-ignored); pass them from a secret store.
+- **Microsoft Store:** set `store: true` and use the publisher and identity values from Partner Center.
+
 ## Versioning
 
 `pubspec.yaml` `version: 1.0.0+1` → bump the build number (`+N`) for every

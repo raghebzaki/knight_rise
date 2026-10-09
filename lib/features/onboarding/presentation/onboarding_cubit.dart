@@ -36,6 +36,7 @@ class OnboardingState extends Equatable {
     this.finishing = false,
     this.finishFailed = false,
     this.launchAtLogin = true,
+    this.launchAtLoginManaged = false,
   });
 
   final bool loaded;
@@ -55,6 +56,10 @@ class OnboardingState extends Equatable {
   /// Desktop only: start the app when the user signs in. On by default
   /// (opt-out); ignored on mobile.
   final bool launchAtLogin;
+
+  /// Desktop only: the system owns launch at login (MSIX StartupTask), so the
+  /// switch is replaced by a note.
+  final bool launchAtLoginManaged;
 
   Routine? routine(RoutineType type) => routines.where((r) => r.type == type).firstOrNull;
 
@@ -103,6 +108,7 @@ class OnboardingState extends Equatable {
     bool? finishing,
     bool? finishFailed,
     bool? launchAtLogin,
+    bool? launchAtLoginManaged,
   }) => OnboardingState(
     loaded: loaded ?? this.loaded,
     step: step ?? this.step,
@@ -114,6 +120,7 @@ class OnboardingState extends Equatable {
     finishing: finishing ?? this.finishing,
     finishFailed: finishFailed ?? this.finishFailed,
     launchAtLogin: launchAtLogin ?? this.launchAtLogin,
+    launchAtLoginManaged: launchAtLoginManaged ?? this.launchAtLoginManaged,
   );
 
   @override
@@ -128,6 +135,7 @@ class OnboardingState extends Equatable {
     finishing,
     finishFailed,
     launchAtLogin,
+    launchAtLoginManaged,
   ];
 }
 
@@ -155,7 +163,7 @@ class OnboardingCubit extends Cubit<OnboardingState> {
     final routines = [...await _routines.getAll()]..sort((a, b) => a.type.index.compareTo(b.type.index));
     final stored = await _schedule.get();
     if (isClosed) return;
-    var next = OnboardingState(loaded: true, routines: routines);
+    var next = OnboardingState(loaded: true, routines: routines, launchAtLoginManaged: await _launchManaged());
     final uniform = uniformSchedule(stored);
     if (uniform != null && uniform.days.isNotEmpty && uniform.windows.length == 1) {
       final w = uniform.windows.single;
@@ -172,6 +180,17 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       );
     }
     emit(next);
+  }
+
+  /// True on a desktop build whose launch at login the system manages.
+  Future<bool> _launchManaged() async {
+    if (!isDesktopPlatform(defaultTargetPlatform)) return false;
+    try {
+      return await _launchAtLogin.status() == LaunchAtLoginStatus.managedBySystem;
+    } on Object catch (e) {
+      debugPrint('Onboarding launch-at-login status failed: $e');
+      return false;
+    }
   }
 
   void next() {

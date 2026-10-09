@@ -571,17 +571,20 @@ class _OathStep extends StatelessWidget {
         ),
         if (isDesktopPlatform(defaultTargetPlatform)) ...[
           const SizedBox(height: KnightSpacing.lg),
-          KnightCard(
-            key: const Key('launch-at-login'),
-            padding: EdgeInsets.zero,
-            child: SwitchListTile(
-              key: const Key('launch-at-login-switch'),
-              title: Text(l.onboardingLaunchAtLoginTitle),
-              subtitle: Text(l.onboardingLaunchAtLoginSubtitle),
-              value: context.select<OnboardingCubit, bool>((c) => c.state.launchAtLogin),
-              onChanged: (v) => context.read<OnboardingCubit>().setLaunchAtLogin(value: v),
+          if (context.select<OnboardingCubit, bool>((c) => c.state.launchAtLoginManaged))
+            Text(l.onboardingLaunchAtLoginManaged, key: const Key('launch-at-login-managed'), style: muted)
+          else
+            KnightCard(
+              key: const Key('launch-at-login'),
+              padding: EdgeInsets.zero,
+              child: SwitchListTile(
+                key: const Key('launch-at-login-switch'),
+                title: Text(l.onboardingLaunchAtLoginTitle),
+                subtitle: Text(l.onboardingLaunchAtLoginSubtitle),
+                value: context.select<OnboardingCubit, bool>((c) => c.state.launchAtLogin),
+                onChanged: (v) => context.read<OnboardingCubit>().setLaunchAtLogin(value: v),
+              ),
             ),
-          ),
         ],
         if (defaultTargetPlatform == TargetPlatform.android) ...[
           const SizedBox(height: KnightSpacing.lg),

@@ -387,7 +387,8 @@ class _LaunchAtLoginRow extends StatelessWidget {
     final cubit = context.read<DeviceHealthCubit>();
     final status = report.launchAtLogin;
     final approval = status == LaunchAtLoginStatus.requiresApproval;
-    final available = status != null && status != LaunchAtLoginStatus.unavailable;
+    final managed = status == LaunchAtLoginStatus.managedBySystem;
+    final available = status != null && status != LaunchAtLoginStatus.unavailable && !managed;
     return _DesktopRow(
       rowKey: const Key('healthLaunchRow'),
       icon: Icons.power_settings_new_outlined,
@@ -396,15 +397,20 @@ class _LaunchAtLoginRow extends StatelessWidget {
         LaunchAtLoginStatus.enabled => l.healthLaunchOn,
         LaunchAtLoginStatus.requiresApproval => l.healthLaunchApproval,
         LaunchAtLoginStatus.disabled => l.healthLaunchOff,
+        LaunchAtLoginStatus.managedBySystem => l.healthLaunchManaged,
         LaunchAtLoginStatus.unavailable || null => l.healthLaunchUnavailable,
       },
       color: _statusColor(context, issue),
-      link: approval ? l.healthOpenLoginItems : null,
+      link: managed
+          ? l.healthOpenStartupApps
+          : approval
+          ? l.healthOpenLoginItems
+          : null,
       linkKey: const Key('healthLaunchOpenLoginItems'),
       onLink: cubit.openLoginItems,
       trailing: Switch(
         key: const Key('healthLaunchSwitch'),
-        value: status == LaunchAtLoginStatus.enabled || approval,
+        value: status == LaunchAtLoginStatus.enabled || approval || managed,
         onChanged: available ? (v) => cubit.setLaunchAtLogin(value: v) : null,
       ),
     );

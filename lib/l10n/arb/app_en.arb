@@ -349,6 +349,8 @@
   "healthLaunchApproval": "Waiting for your approval in Login Items",
   "healthLaunchUnavailable": "Not available in this build",
   "healthOpenLoginItems": "Open Login Items",
+  "healthLaunchManaged": "Managed by Windows (Startup apps)",
+  "healthOpenStartupApps": "Open Startup apps",
   "healthBackgroundTitle": "Background running",
   "healthBackgroundOk": "Running · last check {when}",
   "@healthBackgroundOk": {
@@ -475,6 +477,7 @@
   "onboardingBatteryNote": "Some phones stop reminders to save battery — check Settings › Device health after setup.",
   "onboardingLaunchAtLoginTitle": "Start Knight Rise when you sign in",
   "onboardingLaunchAtLoginSubtitle": "Reminders keep running after a restart. You can change this anytime in Device health.",
+  "onboardingLaunchAtLoginManaged": "Windows starts Knight Rise when you sign in. Change it in Startup apps.",
   "onboardingTakeOath": "Take the Oath",
   "onboardingFinishFailed": "Could not save your setup. Please try again.",
   "navToday": "Today",
@@ -756,6 +759,10 @@
   "trayLaunchAtLogin": "Launch at login",
   "@trayLaunchAtLogin": {
     "description": "Tray menu checkbox: start the app when the user signs in."
+  },
+  "trayLaunchAtLoginManaged": "Launch at login (managed by Windows)",
+  "@trayLaunchAtLoginManaged": {
+    "description": "Tray menu, disabled text row for an MSIX-packaged Windows build, where Startup apps owns the setting."
   },
   "trayQuit": "Quit Knight Rise",
   "@trayQuit": {

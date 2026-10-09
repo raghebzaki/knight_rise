@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:knight_rise/features/notifications/presentation/notification_permission_cubit.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_cubit.dart';
 import 'package:knight_rise/features/onboarding/presentation/onboarding_page.dart';
@@ -331,6 +332,18 @@ void main() {
         }
       });
     }
+
+    testWidgets('managed by Windows: one line instead of the switch', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      try {
+        launch.current = LaunchAtLoginStatus.managedBySystem;
+        await toOath(tester);
+        expect(find.byKey(const Key('launch-at-login-switch')), findsNothing);
+        expect(find.text('Windows starts Knight Rise when you sign in. Change it in Startup apps.'), findsOneWidget);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
 
     testWidgets('turning it off applies false', (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;

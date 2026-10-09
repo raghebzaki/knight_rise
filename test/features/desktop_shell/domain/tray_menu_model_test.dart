@@ -123,6 +123,15 @@ void main() {
     expect(entry(LaunchAtLoginStatus.unavailable).enabled, isFalse);
   });
 
+  test('managed by the system: a disabled text row without a checkbox or command', () {
+    final menu = build(launch: LaunchAtLoginStatus.managedBySystem);
+    expect(menu.where((e) => e.command == TrayCommand.toggleLaunchAtLogin), isEmpty);
+    expect(
+      menu.firstWhere((e) => e.label.startsWith('Launch at login')),
+      const TrayMenuEntry(label: 'Launch at login (managed by Windows)', enabled: false),
+    );
+  });
+
   test('entries compare by value', () {
     expect(const TrayMenuEntry.separator(), const TrayMenuEntry.separator());
     expect(const TrayMenuEntry.separator().hashCode, const TrayMenuEntry.separator().hashCode);

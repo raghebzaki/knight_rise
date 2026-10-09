@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.pfx binary
+*.icns binary
+*.jks binary
+*.db binary
+*.sqlite binary
+*.zip binary

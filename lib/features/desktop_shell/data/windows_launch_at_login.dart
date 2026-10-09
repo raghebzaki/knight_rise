@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:knight_rise/core/platform/launch_arguments.dart';
+import 'package:knight_rise/features/desktop_shell/data/package_identity.dart';
 import 'package:knight_rise/features/desktop_shell/domain/launch_at_login.dart';
 import 'package:win32_registry/win32_registry.dart';
 
@@ -61,16 +62,23 @@ class RegistryRunKeyStore implements RunKeyStore {
 
 /// Windows: a per-user `Run` entry that starts the app with `--autostart`.
 ///
-/// Not usable from an MSIX-packaged build (HKCU is virtualized there).
+/// In an MSIX-packaged build HKCU is virtualized (an entry written there never
+/// starts the app), so a packaged app reports [LaunchAtLoginStatus.managedBySystem]
+/// and leaves the manifest's StartupTask to Windows (Settings > Apps > Startup).
 class WindowsLaunchAtLogin implements LaunchAtLogin {
-  WindowsLaunchAtLogin({this._store = const RegistryRunKeyStore(), String? executable})
-    : _executable = executable ?? Platform.resolvedExecutable;
+  WindowsLaunchAtLogin({
+    this._store = const RegistryRunKeyStore(),
+    String? executable,
+    PackageIdentity packageIdentity = const FfiPackageIdentity(),
+  }) : _executable = executable ?? Platform.resolvedExecutable,
+       _package = packageIdentity;
 
   /// Registry value name.
   static const valueName = 'KnightRise';
 
   final RunKeyStore _store;
   final String _executable;
+  final PackageIdentity _package;
 
   /// What the entry must hold: the quoted executable plus the autostart flag.
   String get expectedCommand => '"$_executable" --autostart';
@@ -79,6 +87,7 @@ class WindowsLaunchAtLogin implements LaunchAtLogin {
   /// left by a moved install counts as disabled and is rewritten on enable.
   @override
   Future<LaunchAtLoginStatus> status() async {
+    if (_package.isPackaged) return LaunchAtLoginStatus.managedBySystem;
     try {
       return _store.read(valueName) == expectedCommand ? LaunchAtLoginStatus.enabled : LaunchAtLoginStatus.disabled;
     } on Object catch (e) {
@@ -89,6 +98,7 @@ class WindowsLaunchAtLogin implements LaunchAtLogin {
 
   @override
   Future<LaunchAtLoginStatus> setEnabled(bool enabled) async {
+    if (_package.isPackaged) return LaunchAtLoginStatus.managedBySystem;
     try {
       if (enabled) {
         _store.write(valueName, expectedCommand);

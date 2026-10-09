@@ -5,17 +5,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:knight_rise/l10n/generated/app_localizations_ar.dart';
 import 'package:knight_rise/l10n/generated/app_localizations_en.dart';
 
+/// [path] with forward slashes, so rules and allow-list keys hold on Windows too.
+String _posix(String path) => path.replaceAll(r'\', '/');
+
 /// Hand-written sources under lib/ (no generated code).
 List<File> _sources() => [
   for (final f in Directory('lib').listSync(recursive: true).whereType<File>())
     if (f.path.endsWith('.dart') &&
-        !f.path.contains('/generated/') &&
+        !_posix(f.path).contains('/generated/') &&
         !RegExp(r'\.(g|freezed|config)\.dart$').hasMatch(f.path))
       f,
 ];
 
 /// Dev-flavor tools are English-only by design.
-bool _devOnly(String path) => path.contains('/gallery/') || path.contains('/diagnostics/');
+bool _devOnly(String path) => _posix(path).contains('/gallery/') || _posix(path).contains('/diagnostics/');
 
 void main() {
   test('no hard-coded user-facing strings outside the ARB file', () {
@@ -41,8 +44,8 @@ void main() {
       final source = f.readAsStringSync();
       for (final m in pattern.allMatches(source)) {
         final snippet = source.substring(m.start, (m.start + 80).clamp(0, source.length));
-        if (allowed[f.path]?.any(snippet.contains) ?? false) continue;
-        offenders.add('${f.path}: ${snippet.split('\n').first}');
+        if (allowed[_posix(f.path)]?.any(snippet.contains) ?? false) continue;
+        offenders.add('${_posix(f.path)}: ${snippet.split('\n').first}');
       }
     }
     expect(offenders, isEmpty, reason: 'Move these strings to lib/l10n/arb/app_en.arb');
@@ -55,7 +58,7 @@ void main() {
     );
     final offenders = [
       for (final f in _sources())
-        for (final m in pattern.allMatches(f.readAsStringSync())) '${f.path}: ${m[0]}',
+        for (final m in pattern.allMatches(f.readAsStringSync())) '${_posix(f.path)}: ${m[0]}',
     ];
     expect(offenders, isEmpty, reason: 'Use EdgeInsetsDirectional / AlignmentDirectional / TextAlign.start|end');
   });

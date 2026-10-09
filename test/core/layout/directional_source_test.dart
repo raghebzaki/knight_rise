@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+/// [path] with forward slashes, so rules and allow-list keys hold on Windows too.
+String _posix(String path) => path.replaceAll(r'\', '/');
+
 /// Hand-written sources under lib/ (no generated code).
 List<File> _sources() => [
   for (final f in Directory('lib').listSync(recursive: true).whereType<File>())
     if (f.path.endsWith('.dart') &&
-        !f.path.contains('/generated/') &&
+        !_posix(f.path).contains('/generated/') &&
         !RegExp(r'\.(g|freezed|config)\.dart$').hasMatch(f.path))
       f,
 ];
@@ -56,8 +59,8 @@ void main() {
       final source = f.readAsStringSync();
       for (final m in pattern.allMatches(source)) {
         final text = m[0]!;
-        if (allowed[f.path]?.any(text.contains) ?? false) continue;
-        offenders.add('${f.path}: ${text.split('\n').first}');
+        if (allowed[_posix(f.path)]?.any(text.contains) ?? false) continue;
+        offenders.add('${_posix(f.path)}: ${text.split('\n').first}');
       }
     }
     expect(

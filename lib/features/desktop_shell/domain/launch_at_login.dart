@@ -9,6 +9,11 @@ enum LaunchAtLoginStatus {
   /// Registered, but the user must approve it in system settings (macOS).
   requiresApproval,
 
+  /// Windows MSIX package: the system's StartupTask owns the setting (Settings >
+  /// Apps > Startup), so the app neither reads nor writes it. [LaunchAtLogin.setEnabled]
+  /// is a no-op that returns this.
+  managedBySystem,
+
   /// This build or platform cannot register (unsupported, or not found).
   unavailable,
 }

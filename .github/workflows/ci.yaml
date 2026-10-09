@@ -75,3 +75,84 @@ jobs:
             echo "Dev-only screens found in the prod binary" >&2
             exit 1
           fi
+
+  # Desktop builds and the whole suite on the OSes users run it on. The suite had only ever run on macOS and Linux;
+  # the Windows leg is where path-separator or line-ending assumptions show up. Pixel goldens stay local.
+  desktop:
+    name: desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --exclude-tags golden
+
+      # macOS: unsigned release build. tool/verify_macos_release.sh checks the sandbox entitlements, Info.plist, the
+      # bundled tray icon and both localizations, then zips the .app into build/dist/. Signing and notarization are
+      # manual (docs/RELEASE.md > Desktop).
+      - name: Build and verify macOS release
+        if: runner.os == 'macOS'
+        run: bash tool/build_macos_release.sh
+
+      - name: Upload macOS app
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: knight-rise-macos
+          path: build/dist/knight_rise-macos-*.zip
+          if-no-files-found: error
+
+      # Windows: the msix package is signed with msix's built-in test certificate, because that works headless and
+      # needs no secrets. Testers trust the exported .cer once (docs/QA_DESKTOP.md); a Store or production build
+      # signs with a real certificate instead (docs/RELEASE.md > Desktop).
+      - name: Build Windows release
+        if: runner.os == 'Windows'
+        run: flutter build windows --release
+
+      - name: Package MSIX (test certificate)
+        if: runner.os == 'Windows'
+        run: dart run msix:create --build-windows false --install-certificate false
+
+      - name: Export the test certificate's public part
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $msix = 'build/windows/x64/runner/Release/knight_rise.msix'
+          $signature = Get-AuthenticodeSignature $msix
+          Write-Host "Signature status: $($signature.Status), signer: $($signature.SignerCertificate.Subject)"
+          Export-Certificate -Cert $signature.SignerCertificate -FilePath 'build/windows/x64/runner/Release/knight_rise_test.cer'
+
+      - name: Upload MSIX
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: knight-rise-windows-msix
+          path: |
+            build/windows/x64/runner/Release/knight_rise.msix
+            build/windows/x64/runner/Release/knight_rise_test.cer
+          if-no-files-found: error

@@ -73,12 +73,17 @@ abstract final class TrayMenuModel {
         TrayMenuEntry(label: l.shieldPresetMeeting, command: TrayCommand.shield50),
       ],
       const TrayMenuEntry.separator(),
-      TrayMenuEntry(
-        label: l.trayLaunchAtLogin,
-        command: TrayCommand.toggleLaunchAtLogin,
-        enabled: launchAtLogin != LaunchAtLoginStatus.unavailable,
-        checked: launchAtLogin == LaunchAtLoginStatus.enabled,
-      ),
+      // Packaged Windows: Startup apps owns the setting, so show a disabled text row (no checkbox, which would claim
+      // a state this app cannot read).
+      if (launchAtLogin == LaunchAtLoginStatus.managedBySystem)
+        TrayMenuEntry(label: l.trayLaunchAtLoginManaged, enabled: false)
+      else
+        TrayMenuEntry(
+          label: l.trayLaunchAtLogin,
+          command: TrayCommand.toggleLaunchAtLogin,
+          enabled: launchAtLogin != LaunchAtLoginStatus.unavailable,
+          checked: launchAtLogin == LaunchAtLoginStatus.enabled,
+        ),
       const TrayMenuEntry.separator(),
       TrayMenuEntry(label: l.trayQuit, command: TrayCommand.quit),
     ];

@@ -253,6 +253,19 @@ void main() {
       expect(launch.sets, isEmpty);
     });
 
+    test('load detects a system-managed login item on desktop only', () async {
+      launch.current = LaunchAtLoginStatus.managedBySystem;
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      await cubit.load();
+      expect(cubit.state.launchAtLoginManaged, isTrue);
+
+      final mobile = build();
+      addTearDown(mobile.close);
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await mobile.load();
+      expect(mobile.state.launchAtLoginManaged, isFalse);
+    });
+
     test('mobile never calls it', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       expect(await cubit.finish(), isTrue);

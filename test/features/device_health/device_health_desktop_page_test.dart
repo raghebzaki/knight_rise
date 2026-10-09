@@ -128,6 +128,21 @@ void main() {
       expect(h.links.calls, ['loginItems']);
     });
 
+    desktopTest('managed by Windows: explains, links to Startup apps, no warning', (tester) async {
+      final h = await pumpPage(
+        tester,
+        platform: HealthPlatform.windows,
+        setup: (h) => h.launchAtLogin.current = LaunchAtLoginStatus.managedBySystem,
+      );
+      expect(find.text('Managed by Windows (Startup apps)'), findsOneWidget);
+      expect(tester.widget<Switch>(find.byKey(const Key('healthLaunchSwitch'))).onChanged, isNull);
+      expect(h.cubit.state.actionable.map((i) => i.kind), isNot(contains(HealthKind.launchAtLogin)));
+      await tester.tap(find.text('Open Startup apps'));
+      await tester.pumpAndSettle();
+      expect(h.links.calls, ['loginItems']);
+      expect(h.launchAtLogin.sets, isEmpty);
+    });
+
     desktopTest('unavailable disables the switch', (tester) async {
       await pumpPage(
         tester,

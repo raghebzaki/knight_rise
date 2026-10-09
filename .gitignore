@@ -64,3 +64,6 @@ lib/l10n/generated/
 *.p8
 *.p12
 *.mobileprovision
+
+# Code-signing material (see docs/RELEASE.md)
+*.pfx
