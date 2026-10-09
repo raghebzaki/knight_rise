@@ -57,6 +57,11 @@ done
 [[ "$(plist CFBundleIdentifier)" == "$EXPECTED_BUNDLE_ID" ]] &&
   pass "Info.plist: CFBundleIdentifier is $EXPECTED_BUNDLE_ID" ||
   fail "Info.plist: CFBundleIdentifier is $EXPECTED_BUNDLE_ID (got '$(plist CFBundleIdentifier)')"
+# The menu bar, About and Activity Monitor read CFBundleName. The bundle id (unchanged) keys the sandbox container and
+# the database path, so the names are display-only.
+[[ "$(plist CFBundleName)" == "$EXPECTED_DISPLAY_NAME" ]] &&
+  pass "Info.plist: CFBundleName is $EXPECTED_DISPLAY_NAME" ||
+  fail "Info.plist: CFBundleName is $EXPECTED_DISPLAY_NAME (got '$(plist CFBundleName)')"
 [[ "$(plist CFBundleDisplayName)" == "$EXPECTED_DISPLAY_NAME" ]] &&
   pass "Info.plist: CFBundleDisplayName is $EXPECTED_DISPLAY_NAME" ||
   fail "Info.plist: CFBundleDisplayName is $EXPECTED_DISPLAY_NAME (got '$(plist CFBundleDisplayName)')"

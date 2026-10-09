@@ -161,7 +161,8 @@ bash tool/package_macos_dmg.sh       # build/dist/Knight_Rise_v<version>.dmg: th
 `build_macos_release.sh` passes extra arguments to `flutter build` (`--build-name 1.2.0 --build-number 7`).
 `package_macos_dmg.sh --out ~/Desktop/Knight_Rise_v1.0.dmg` writes elsewhere; it arranges the Finder window unless
 `--no-layout` (CI) is passed. The bundle stays `knight_rise.app` on disk and is staged into the DMG as `Knight Rise.app`;
-`CFBundleDisplayName` is `Knight Rise`.
+`CFBundleName` and `CFBundleDisplayName` are `Knight Rise` (menu bar, About, Activity Monitor); the bundle id keys the
+sandbox container and database path, so the bundle and executable names can stay `knight_rise`.
 
 The verifier fails on any `allow-jit`, `network.client` or `network.server` entitlement (the app is offline); add one
 deliberately to `macos/Runner/Release.entitlements` and to the script if a plugin ever needs it. It then zips the app to
