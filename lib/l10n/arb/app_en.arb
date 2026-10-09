@@ -525,6 +525,7 @@
     }
   },
   "navHistory": "History",
+  "navSettings": "Settings",
   "historyTitle": "History",
   "historyRangeWeek": "7 days",
   "historyRangeMonth": "30 days",

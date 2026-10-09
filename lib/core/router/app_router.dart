@@ -17,10 +17,12 @@ import 'package:knight_rise/features/routines/presentation/routines_page.dart';
 import 'package:knight_rise/features/settings/presentation/settings_page.dart';
 import 'package:knight_rise/features/work_hours/presentation/work_hours_page.dart';
 
-/// Routes. `/` (Today), `/quest` (Quest Log) and `/history` are the
-/// bottom-navigation tabs of [AppShell]; each keeps its state while hidden.
-/// Every other route is full screen, above the shell.
-/// `/settings`, `/settings/work-hours`, `/settings/routines` and
+/// Routes. `/` (Today), `/quest` (Quest Log), `/history` and `/settings` are
+/// the four branches of [AppShell] (bottom bar, rail or sidebar by window
+/// width); each keeps its state while hidden. `/break`, `/onboarding` and the
+/// dev tools are full screen, above the shell.
+/// The Settings branch holds `/settings`, `/settings/work-hours`,
+/// `/settings/device-health`, `/settings/routines` and
 /// `/settings/routines/:type` (invalid type redirects to the list).
 /// `/break?types=hydration,eyeRest` is the notification-tap target;
 /// invalid or empty `types` redirect to `/`.
@@ -45,32 +47,37 @@ GoRouter buildRouter({String initialLocation = '/', OnboardingGate? gate}) => Go
         StatefulShellBranch(
           routes: [GoRoute(path: '/history', builder: (_, _) => const HistoryPage())],
         ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/settings',
+              builder: (_, _) => const SettingsPage(),
+              routes: [
+                GoRoute(path: 'work-hours', builder: (_, _) => const WorkHoursPage()),
+                GoRoute(path: 'device-health', builder: (_, _) => const DeviceHealthPage()),
+                GoRoute(
+                  path: 'routines',
+                  builder: (_, _) => const RoutinesPage(),
+                  routes: [
+                    GoRoute(
+                      path: ':type',
+                      redirect: (_, state) =>
+                          routineTypeFromParam(state.pathParameters['type']) == null ? '/settings/routines' : null,
+                      builder: (_, state) =>
+                          RoutineEditorPage(type: routineTypeFromParam(state.pathParameters['type'])!),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ],
     ),
     GoRoute(
       path: '/break',
       redirect: (_, state) => parseBreakTypes(state.uri.queryParameters['types']).isEmpty ? '/' : null,
       builder: (_, state) => BreakPage(types: parseBreakTypes(state.uri.queryParameters['types'])),
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (_, _) => const SettingsPage(),
-      routes: [
-        GoRoute(path: 'work-hours', builder: (_, _) => const WorkHoursPage()),
-        GoRoute(path: 'device-health', builder: (_, _) => const DeviceHealthPage()),
-        GoRoute(
-          path: 'routines',
-          builder: (_, _) => const RoutinesPage(),
-          routes: [
-            GoRoute(
-              path: ':type',
-              redirect: (_, state) =>
-                  routineTypeFromParam(state.pathParameters['type']) == null ? '/settings/routines' : null,
-              builder: (_, state) => RoutineEditorPage(type: routineTypeFromParam(state.pathParameters['type'])!),
-            ),
-          ],
-        ),
-      ],
     ),
     if (kDevFlavor) ...[
       GoRoute(path: '/gallery', builder: (_, _) => const GalleryPage()),

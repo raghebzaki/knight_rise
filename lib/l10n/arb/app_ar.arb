@@ -253,6 +253,7 @@
   "durationMinutes": "{minutes} د",
   "durationHoursMinutes": "{hours} س {minutes} د",
   "navHistory": "السجل",
+  "navSettings": "الإعدادات",
   "historyTitle": "السجل",
   "historyRangeWeek": "7 أيام",
   "historyRangeMonth": "30 يومًا",

@@ -145,7 +145,7 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               tooltip: l.settingsTitle,
               icon: const Icon(Icons.settings_outlined),
-              onPressed: () => context.push('/settings'),
+              onPressed: () => context.go('/settings'),
             ),
             const SizedBox(width: KnightSpacing.sm),
           ],

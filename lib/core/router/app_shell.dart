@@ -5,12 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/feedback/haptics.dart';
+import 'package:knight_rise/core/layout/window_size.dart';
+import 'package:knight_rise/core/theme/knight_dimens.dart';
 import 'package:knight_rise/features/quest_log/presentation/rank_up_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/widgets/rank_up_dialog.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
-/// Bottom navigation around the tab routes (`/` Today, `/quest` Quest Log,
-/// `/history` History). Also hosts the rank-up celebration, so a pending
+/// Adaptive navigation around the branch routes (`/` Today, `/quest` Quest
+/// Log, `/history` History, `/settings` Settings): a bottom bar when compact,
+/// a rail when medium or expanded, an extended sidebar when large (see
+/// [WindowSizeClass]). Also hosts the rank-up celebration, so a pending
 /// rank-up shows on whichever tab opens first.
 class AppShell extends StatefulWidget {
   const AppShell({required this.shell, super.key, this.rankUpCubitFactory});
@@ -66,31 +70,59 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final shell = widget.shell;
-    final scaffold = Scaffold(
-      body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        // Re-selecting the current tab returns it to its first page.
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.today_outlined),
-            selectedIcon: const Icon(Icons.today),
-            label: l.navToday,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.military_tech_outlined),
-            selectedIcon: const Icon(Icons.military_tech),
-            label: l.navQuestLog,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.insights_outlined),
-            selectedIcon: const Icon(Icons.insights),
-            label: l.navHistory,
-          ),
-        ],
-      ),
-    );
+    final size = context.windowSizeClass;
+    final destinations = _destinations(l);
+    // Re-selecting the current destination returns it to its first page.
+    void select(int i) => shell.goBranch(i, initialLocation: i == shell.currentIndex);
+    final Widget scaffold;
+    if (size.usesRail) {
+      final extended = size == WindowSizeClass.large;
+      scaffold = Scaffold(
+        body: Row(
+          children: [
+            SafeArea(
+              child: NavigationRail(
+                selectedIndex: shell.currentIndex,
+                onDestinationSelected: select,
+                extended: extended,
+                minExtendedWidth: 256,
+                labelType: size == WindowSizeClass.expanded
+                    ? NavigationRailLabelType.all
+                    : NavigationRailLabelType.none,
+                leading: extended
+                    ? Padding(
+                        padding: const EdgeInsetsDirectional.only(bottom: KnightSpacing.md),
+                        child: Text(l.appTitle, style: Theme.of(context).textTheme.titleMedium),
+                      )
+                    : null,
+                destinations: [
+                  for (final d in destinations)
+                    NavigationRailDestination(
+                      icon: Icon(d.icon),
+                      selectedIcon: Icon(d.selectedIcon),
+                      label: Text(d.label),
+                    ),
+                ],
+              ),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: shell),
+          ],
+        ),
+      );
+    } else {
+      scaffold = Scaffold(
+        body: shell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: select,
+          destinations: [
+            for (final d in destinations)
+              NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label),
+          ],
+        ),
+      );
+    }
     final cubit = _rankUp;
     if (cubit == null) return scaffold;
     return BlocListener<RankUpCubit, PendingRankUp?>(
@@ -100,4 +132,12 @@ class _AppShellState extends State<AppShell> {
       child: scaffold,
     );
   }
+
+  /// The one destination list behind every layout, in branch order.
+  List<({IconData icon, IconData selectedIcon, String label})> _destinations(AppLocalizations l) => [
+    (icon: Icons.today_outlined, selectedIcon: Icons.today, label: l.navToday),
+    (icon: Icons.military_tech_outlined, selectedIcon: Icons.military_tech, label: l.navQuestLog),
+    (icon: Icons.insights_outlined, selectedIcon: Icons.insights, label: l.navHistory),
+    (icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: l.navSettings),
+  ];
 }

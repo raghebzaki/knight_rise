@@ -146,6 +146,14 @@ abstract final class KnightTheme {
         ),
         labelTextStyle: WidgetStatePropertyAll(text.labelSmall),
       ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: p.surface,
+        indicatorColor: p.primary.withValues(alpha: 0.16),
+        selectedIconTheme: IconThemeData(color: p.primary),
+        unselectedIconTheme: IconThemeData(color: p.onSurfaceVariant),
+        selectedLabelTextStyle: text.labelSmall?.copyWith(color: p.primary),
+        unselectedLabelTextStyle: text.labelSmall?.copyWith(color: p.onSurfaceVariant),
+      ),
       dialogTheme: DialogThemeData(
         backgroundColor: p.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,

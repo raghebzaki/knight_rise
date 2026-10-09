@@ -132,10 +132,10 @@ class _AnimatedSplashState extends State<AnimatedSplash> with SingleTickerProvid
                           clipBehavior: Clip.none,
                           children: [
                             // Crest glow behind the shield, pulsing.
-                            Positioned(
-                              left: -_glowPad * scale,
+                            PositionedDirectional(
+                              start: -_glowPad * scale,
                               top: -_glowPad * scale,
-                              right: -_glowPad * scale,
+                              end: -_glowPad * scale,
                               bottom: -_glowPad * scale,
                               child: Opacity(
                                 key: const Key('splash-glow'),
@@ -145,10 +145,10 @@ class _AnimatedSplashState extends State<AnimatedSplash> with SingleTickerProvid
                             ),
                             Positioned.fill(child: Image.asset(kSplashMarkAsset, fit: BoxFit.contain)),
                             // A lighter pass over the shield, so the bolt itself brightens.
-                            Positioned(
-                              left: -_glowPad * scale,
+                            PositionedDirectional(
+                              start: -_glowPad * scale,
                               top: -_glowPad * scale,
-                              right: -_glowPad * scale,
+                              end: -_glowPad * scale,
                               bottom: -_glowPad * scale,
                               child: Opacity(
                                 opacity: (_glow.value * 0.55).clamp(0, 1),

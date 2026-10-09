@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/platform/system_settings_launcher.dart';
 import 'package:knight_rise/core/router/app_router.dart';
 import 'package:knight_rise/core/theme/knight_palette.dart';
 import 'package:knight_rise/core/theme/knight_theme.dart';
@@ -18,6 +19,11 @@ import 'package:knight_rise/features/quest_log/presentation/history_page.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_cubit.dart';
 import 'package:knight_rise/features/quest_log/presentation/quest_log_page.dart';
 import 'package:knight_rise/features/quest_log/presentation/rank_up_cubit.dart';
+import 'package:knight_rise/features/routines/domain/entities/routine.dart';
+import 'package:knight_rise/features/routines/presentation/routine_editor_cubit.dart';
+import 'package:knight_rise/features/routines/presentation/routine_editor_page.dart';
+import 'package:knight_rise/features/routines/presentation/routines_cubit.dart';
+import 'package:knight_rise/features/routines/presentation/routines_page.dart';
 import 'package:knight_rise/features/scheduler/domain/services/reminder_planner.dart';
 import 'package:knight_rise/features/scheduler/domain/usecases/cycle_usecases.dart';
 import 'package:knight_rise/features/settings/presentation/settings_cubit.dart';
@@ -28,6 +34,7 @@ import 'package:knight_rise/features/shield/presentation/shield_cubit.dart';
 import 'package:knight_rise/features/work_hours/domain/usecases/day_override_usecases.dart';
 import 'package:knight_rise/l10n/generated/app_localizations.dart';
 
+import '../../helpers/fake_launcher.dart';
 import '../../helpers/fakes.dart';
 import '../../helpers/health_fakes.dart';
 import '../../helpers/pump_app.dart';
@@ -76,13 +83,24 @@ void main() {
       )
       ..registerFactory<HistoryCubit>(() => HistoryCubit(quest.summaries, settings, clock, location))
       ..registerFactory<SettingsCubit>(() => SettingsCubit(settings, work))
-      ..registerFactory<DeviceHealthCubit>(() => HealthHarness().cubit);
+      ..registerFactory<DeviceHealthCubit>(() => HealthHarness().cubit)
+      ..registerSingleton<SystemSettingsLauncher>(FakeSystemSettingsLauncher())
+      ..registerFactory<RoutinesCubit>(() => RoutinesCubit(quest.routines))
+      ..registerFactoryParam<RoutineEditorCubit, RoutineType, void>(
+        (t, _) => RoutineEditorCubit(quest.routines, settings, t),
+      );
   });
 
   tearDown(getIt.reset);
 
-  Future<GoRouter> pumpAt(WidgetTester tester, String location) async {
-    useTallView(tester);
+  Future<GoRouter> pumpAt(WidgetTester tester, String location, {Size? size, Locale? locale}) async {
+    if (size == null) {
+      useTallView(tester);
+    } else {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
     final router = buildRouter(initialLocation: location);
     addTearDown(router.dispose);
     final clock = quest.clock;
@@ -115,6 +133,7 @@ void main() {
           ],
           child: MaterialApp.router(
             theme: KnightTheme.build(KnightPalette.midnight),
+            locale: locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
@@ -176,18 +195,135 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('settings open full screen above the tabs, and back returns to them', (tester) async {
-    await pumpAt(tester, '/');
-    await tester.tap(find.byTooltip('Settings'));
+  testWidgets('the Home gear switches to the Settings branch, with the bar still showing', (tester) async {
+    final router = await pumpAt(tester, '/');
+    await tester.tap(find.byTooltip('Settings').first);
     await tester.pumpAndSettle();
+    expect(path(router), '/settings');
     expect(find.byType(SettingsPage), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
-
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.byType(HomePage), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
+    expect(selectedTab(tester), 3);
     await unmount(tester);
+  });
+
+  testWidgets('/settings/routines/eyeRest deep-links into the Settings branch', (tester) async {
+    await pumpAt(tester, '/settings/routines/eyeRest');
+    expect(find.byType(RoutineEditorPage), findsOneWidget);
+    expect(selectedTab(tester), 3);
+    await unmount(tester);
+  });
+
+  group('adaptive navigation', () {
+    const compact = Size(400, 800);
+    const medium = Size(700, 900);
+    const expanded = Size(1000, 800);
+    const large = Size(1300, 900);
+
+    NavigationRail rail(WidgetTester tester) => tester.widget<NavigationRail>(find.byType(NavigationRail));
+
+    testWidgets('compact: bottom bar with four destinations, no rail', (tester) async {
+      await pumpAt(tester, '/', size: compact);
+      expect(find.byType(NavigationRail), findsNothing);
+      expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations, hasLength(4));
+      await unmount(tester);
+    });
+
+    testWidgets('medium: rail without labels, not extended', (tester) async {
+      await pumpAt(tester, '/', size: medium);
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(rail(tester).labelType, NavigationRailLabelType.none);
+      expect(rail(tester).extended, isFalse);
+      expect(rail(tester).destinations, hasLength(4));
+      await unmount(tester);
+    });
+
+    testWidgets('expanded: rail with labels', (tester) async {
+      await pumpAt(tester, '/', size: expanded);
+      expect(rail(tester).labelType, NavigationRailLabelType.all);
+      expect(rail(tester).extended, isFalse);
+      await unmount(tester);
+    });
+
+    testWidgets('large: extended sidebar with the app title', (tester) async {
+      await pumpAt(tester, '/', size: large);
+      expect(rail(tester).extended, isTrue);
+      expect(rail(tester).minExtendedWidth, 256);
+      expect(find.text('Knight Rise'), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('every destination switches branch; reselecting resets it', (tester) async {
+      final router = await pumpAt(tester, '/', size: large);
+      Future<void> go(String label) async {
+        await tester.tap(find.descendant(of: find.byType(NavigationRail), matching: find.text(label)));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
+
+      await go('Quest Log');
+      expect(path(router), '/quest');
+      expect(find.byType(QuestLogPage), findsOneWidget);
+      await go('History');
+      expect(path(router), '/history');
+      expect(find.byType(HistoryPage), findsOneWidget);
+      await go('Settings');
+      expect(path(router), '/settings');
+      expect(find.byType(SettingsPage), findsOneWidget);
+      expect(rail(tester).selectedIndex, 3);
+      await go('Today');
+      expect(path(router), '/');
+      expect(find.byType(HomePage), findsOneWidget);
+
+      // Settings deep page, then reselect Settings: back to its first page.
+      router.go('/settings/routines');
+      await tester.pumpAndSettle();
+      expect(find.byType(RoutinesPage), findsOneWidget);
+      await go('Settings');
+      expect(path(router), '/settings');
+      expect(find.byType(SettingsPage), findsOneWidget);
+      await unmount(tester);
+    });
+
+    testWidgets('resizing compact to large keeps the branch and its state', (tester) async {
+      final router = await pumpAt(tester, '/quest', size: compact);
+      expect(selectedTab(tester), 1);
+      tester.view.physicalSize = large;
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(rail(tester).selectedIndex, 1);
+      expect(path(router), '/quest');
+      expect(find.byType(QuestLogPage), findsOneWidget);
+      expect(questCubits, 1);
+      await unmount(tester);
+    });
+
+    for (final (locale, name) in [(const Locale('ar'), 'Arabic'), (const Locale('en'), 'English')]) {
+      final rtl = locale.languageCode == 'ar';
+      for (final size in [medium, large]) {
+        testWidgets('$name at ${size.width.toInt()}: rail on the ${rtl ? 'right' : 'left'} edge', (tester) async {
+          await pumpAt(tester, '/', size: size, locale: locale);
+          final left = tester.getTopLeft(find.byType(NavigationRail)).dx;
+          if (rtl) {
+            expect(left, greaterThan(size.width / 2));
+          } else {
+            expect(left, 0);
+          }
+          await unmount(tester);
+        });
+      }
+
+      testWidgets('$name compact bar: Today is on the ${rtl ? 'right' : 'left'}', (tester) async {
+        await pumpAt(tester, '/', size: compact, locale: locale);
+        final today = tester.getCenter(
+          find.descendant(of: find.byType(NavigationBar), matching: find.byIcon(Icons.today)),
+        );
+        final settingsIcon = tester.getCenter(
+          find.descendant(of: find.byType(NavigationBar), matching: find.byIcon(Icons.settings_outlined)),
+        );
+        expect(today.dx < settingsIcon.dx, !rtl);
+        await unmount(tester);
+      });
+    }
   });
 
   testWidgets('a water log on the Quest Log shows up on Today', (tester) async {
