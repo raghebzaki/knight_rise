@@ -298,5 +298,12 @@
   "waterLogAction": "سجِّل {ml} مل من الماء",
   "language": "اللغة",
   "languageNameEn": "English",
-  "languageNameAr": "العربية"
+  "languageNameAr": "العربية",
+  "trayShieldUntil": "الدرع مفعَّل حتى {time}",
+  "trayNextReminder": "التذكير التالي الساعة {time}",
+  "trayNoReminders": "لا توجد تذكيرات مجدولة",
+  "trayOpen": "فتح Knight Rise",
+  "trayLowerShield": "إنهاء الدرع",
+  "trayLaunchAtLogin": "التشغيل عند تسجيل الدخول",
+  "trayQuit": "إنهاء Knight Rise"
 }

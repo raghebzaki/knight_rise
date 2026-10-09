@@ -90,7 +90,7 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.ragheb" "\0"
-            VALUE "FileDescription", "knight_rise" "\0"
+            VALUE "FileDescription", "Knight Rise" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "knight_rise" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.ragheb. All rights reserved." "\0"

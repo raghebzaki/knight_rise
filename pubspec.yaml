@@ -34,6 +34,9 @@ dependencies:
   android_intent_plus: ^6.1.0
   device_info_plus: ^13.3.0
   fl_chart: ^1.2.0
+  window_manager: 0.5.2
+  tray_manager: 0.5.3
+  win32_registry: ^3.0.3
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +63,8 @@ flutter:
   assets:
     - assets/branding/splash_mark.png
     - assets/branding/splash_crest_glow.png
+    # Desktop tray icons (see tool/gen_tray_icons.py); resolved by file name on disk.
+    - assets/branding/tray/
 
   fonts:
     - family: Orbitron

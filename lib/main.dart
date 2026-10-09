@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:knight_rise/app.dart';
 import 'package:knight_rise/core/config/flavor.dart';
 import 'package:knight_rise/core/di/injection.dart';
+import 'package:knight_rise/core/platform/launch_arguments.dart';
+import 'package:knight_rise/core/platform/platform_shell.dart';
 import 'package:knight_rise/core/router/break_location.dart';
 import 'package:knight_rise/core/widgets/knight_error_view.dart';
 import 'package:knight_rise/features/notifications/domain/notification_gateway.dart';
@@ -18,7 +20,8 @@ import 'package:knight_rise/features/settings/presentation/locale_cubit.dart';
 import 'package:knight_rise/features/splash/presentation/animated_splash.dart';
 import 'package:knight_rise/features/splash/presentation/splash_gate.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
+  LaunchArguments.values = args;
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
   // Must precede KnightRiseApp: its sync service reconciles on launch.
@@ -30,6 +33,8 @@ Future<void> main() async {
   if (kReleaseMode) ErrorWidget.builder = (_) => const KnightBuildErrorFallback();
   // So the first frame is already in the chosen language and direction.
   await getIt<LocaleCubit>().load();
+  // Window close-to-tray and the tray menu (desktop; a no-op on mobile).
+  await getIt<PlatformShell>().start();
   // Cold start from a notification tap: the plugin reports it as launch
   // details instead of calling the foreground callback. Read before the first
   // frame (the native splash is still up) so such a launch skips the splash.
@@ -46,6 +51,8 @@ void _openBreak(ReminderAction action) {
   if (!_openBreakDeduper.shouldOpen(action.notificationId)) return;
   // A tap while the splash still plays goes straight to the break.
   getIt<SplashGate>().dismiss();
+  // A toast click may land while the window is hidden in the tray.
+  unawaited(getIt<PlatformShell>().bringToFront());
   unawaited(getIt<GoRouter>().push(breakLocation(action.types)));
 }
 

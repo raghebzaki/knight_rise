@@ -2,11 +2,34 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <string>
+
 #include "flutter_window.h"
 #include "utils.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Single instance. A toast activation (COM) of a running app does not start
+  // a new process, so this path is for the user double-clicking the app.
+  // The handle is intentionally kept open for the process lifetime.
+  const bool autostart =
+      std::wstring(::GetCommandLineW()).find(L"--autostart") !=
+      std::wstring::npos;
+  HANDLE single_instance_mutex = ::CreateMutexW(
+      nullptr, TRUE, L"Local\\com.ragheb.KnightRise.SingleInstance");
+  if (single_instance_mutex != nullptr &&
+      ::GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (!autostart) {
+      HWND existing =
+          ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Knight Rise");
+      if (existing != nullptr) {
+        ::ShowWindow(existing, ::IsIconic(existing) ? SW_RESTORE : SW_SHOW);
+        ::SetForegroundWindow(existing);
+      }
+    }
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -25,9 +48,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
+  window.SetStartHidden(autostart);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"knight_rise", origin, size)) {
+  if (!window.Create(L"Knight Rise", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

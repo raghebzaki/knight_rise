@@ -679,5 +679,43 @@
   "languageNameAr": "العربية",
   "@languageNameAr": {
     "description": "Always in Arabic, in every locale, so people can find their language."
+  },
+  "trayShieldUntil": "Shield up until {time}",
+  "@trayShieldUntil": {
+    "description": "Tray menu status line while a Shield is active.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "trayNextReminder": "Next reminder at {time}",
+  "@trayNextReminder": {
+    "description": "Tray menu status line with the next scheduled reminder.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "trayNoReminders": "No reminders scheduled",
+  "@trayNoReminders": {
+    "description": "Tray menu status line when nothing is scheduled."
+  },
+  "trayOpen": "Open Knight Rise",
+  "@trayOpen": {
+    "description": "Tray menu item that brings the app window forward."
+  },
+  "trayLowerShield": "Lower Shield",
+  "@trayLowerShield": {
+    "description": "Tray menu item that ends the active Shield."
+  },
+  "trayLaunchAtLogin": "Launch at login",
+  "@trayLaunchAtLogin": {
+    "description": "Tray menu checkbox: start the app when the user signs in."
+  },
+  "trayQuit": "Quit Knight Rise",
+  "@trayQuit": {
+    "description": "Tray menu item that fully exits the app."
   }
 }

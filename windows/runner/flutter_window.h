@@ -15,6 +15,9 @@ class FlutterWindow : public Win32Window {
   explicit FlutterWindow(const flutter::DartProject& project);
   virtual ~FlutterWindow();
 
+  // When true, the window is not shown on the first frame (autostart).
+  void SetStartHidden(bool start_hidden) { start_hidden_ = start_hidden; }
+
  protected:
   // Win32Window:
   bool OnCreate() override;
@@ -23,6 +26,8 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  bool start_hidden_ = false;
+
   // The project to run.
   flutter::DartProject project_;
 
