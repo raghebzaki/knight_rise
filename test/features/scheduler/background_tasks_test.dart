@@ -116,7 +116,7 @@ void main() {
     });
   });
 
-  group('BackgroundScheduler.register', () {
+  group('WorkmanagerBackgroundScheduler.register', () {
     late _MockAdapter adapter;
 
     setUpAll(() {
@@ -148,7 +148,7 @@ void main() {
 
     test('android: initialize then periodic task with update policy', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      await BackgroundScheduler(adapter).register();
+      await WorkmanagerBackgroundScheduler(adapter).register();
       verifyInOrder([
         () => adapter.initialize(knightCallbackDispatcher),
         () => adapter.registerPeriodicTask(
@@ -166,7 +166,7 @@ void main() {
 
     test('iOS: initialize then BGAppRefresh periodic task', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-      await BackgroundScheduler(adapter).register();
+      await WorkmanagerBackgroundScheduler(adapter).register();
       verifyInOrder([
         () => adapter.initialize(knightCallbackDispatcher),
         () => adapter.registerPeriodicTask(
@@ -182,7 +182,11 @@ void main() {
     test('adapter failures are swallowed', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       when(() => adapter.initialize(any())).thenThrow(StateError('plugin missing'));
-      await expectLater(BackgroundScheduler(adapter).register(), completes);
+      await expectLater(WorkmanagerBackgroundScheduler(adapter).register(), completes);
     });
+  });
+
+  test('DesktopBackgroundScheduler registers nothing and completes', () async {
+    await expectLater(const DesktopBackgroundScheduler().register(), completes);
   });
 }

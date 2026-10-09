@@ -1,10 +1,28 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:knight_rise/core/database/app_database.steps.dart';
 import 'package:knight_rise/features/routines/domain/entities/routine.dart';
 import 'package:knight_rise/features/work_hours/domain/entities/work_schedule.dart';
+import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
+
+/// File name stem: drift stores the database as `knight_rise.sqlite`.
+const String kDatabaseName = 'knight_rise';
+
+/// Drift options for Android / iOS (see [AppDatabase.open]).
+@visibleForTesting
+const DriftNativeOptions mobileDatabaseOptions = DriftNativeOptions(shareAcrossIsolates: true);
+
+/// Drift options for macOS / Windows (see [AppDatabase.openDesktop]): the
+/// database lives in the directory [supportDirectory] returns, created if
+/// missing.
+@visibleForTesting
+DriftNativeOptions desktopDatabaseOptions(Future<Directory> Function() supportDirectory) =>
+    DriftNativeOptions(databaseDirectory: () => supportDirectory().then((d) => d.create(recursive: true)));
 
 @DataClassName('RoutineRow')
 class Routines extends Table {
@@ -179,11 +197,19 @@ class DailyRoutineSummaries extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
-  /// Production database. `shareAcrossIsolates` makes the UI isolate and the
-  /// notification / workmanager isolates talk to one drift server, found via
+  /// Mobile production database, in the app's Documents directory (drift's
+  /// default; never move it, installed apps keep their data there).
+  /// `shareAcrossIsolates` makes the UI isolate and the notification /
+  /// workmanager isolates talk to one drift server, found via
   /// IsolateNameServer, so concurrent writes are safe (Milestone 2).
-  factory AppDatabase.open() =>
-      AppDatabase(driftDatabase(name: 'knight_rise', native: const DriftNativeOptions(shareAcrossIsolates: true)));
+  factory AppDatabase.open() => AppDatabase(driftDatabase(name: kDatabaseName, native: mobileDatabaseOptions));
+
+  /// Desktop production database, in Application Support (macOS) /
+  /// `%APPDATA%\<company>\<product>` (Windows) rather than Documents, which
+  /// iCloud Drive / OneDrive may sync while SQLite is writing to it. Desktop
+  /// runs no background isolates, so nothing is shared.
+  factory AppDatabase.openDesktop() =>
+      AppDatabase(driftDatabase(name: kDatabaseName, native: desktopDatabaseOptions(getApplicationSupportDirectory)));
 
   @override
   int get schemaVersion => 6;

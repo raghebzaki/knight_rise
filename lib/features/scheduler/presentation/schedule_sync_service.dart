@@ -6,6 +6,7 @@ import 'package:knight_rise/core/clock/clock.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/core/time/device_timezone.dart';
 import 'package:knight_rise/core/time/local_day.dart';
+import 'package:knight_rise/core/time/timezone_loader.dart';
 import 'package:knight_rise/features/routines/domain/repositories/routine_repository.dart';
 import 'package:knight_rise/features/scheduler/domain/entities/reconcile_run.dart';
 import 'package:knight_rise/features/scheduler/domain/repositories/reconcile_run_repository.dart';
@@ -135,7 +136,7 @@ class ScheduleSyncService implements RemindersPausedSource {
       final settings = await _settings.get();
       if (id != null && id != settings.timezoneId) {
         final previous = settings.timezoneId;
-        if (previous != null) _applyLocation(tz.getLocation(id));
+        if (previous != null) _applyLocation(resolveLocation(id, utcOffset: DateTime.now().timeZoneOffset));
         await _settings.save(settings.copyWith(timezoneId: id));
         if (previous != null) {
           trigger = ReconcileTrigger.timezoneChange;

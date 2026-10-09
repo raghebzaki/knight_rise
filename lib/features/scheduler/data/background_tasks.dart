@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:knight_rise/core/config/background_ids.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/core/di/bootstrap_background.dart';
 import 'package:knight_rise/core/di/injection.dart';
 import 'package:knight_rise/features/quest_log/domain/usecases/history_usecases.dart';
@@ -14,7 +15,7 @@ import 'package:workmanager/workmanager.dart';
 const Duration reconcileInterval = Duration(hours: 1);
 
 /// WorkManager entry point, run in a headless isolate. Referenced by
-/// [BackgroundScheduler.register] via `Workmanager().initialize`.
+/// [WorkmanagerBackgroundScheduler.register] via `Workmanager().initialize`.
 @pragma('vm:entry-point')
 void knightCallbackDispatcher() {
   Workmanager().executeTask(
@@ -82,6 +83,7 @@ abstract interface class WorkmanagerAdapter {
   });
 }
 
+@mobileEnv
 @LazySingleton(as: WorkmanagerAdapter)
 class DefaultWorkmanagerAdapter implements WorkmanagerAdapter {
   const DefaultWorkmanagerAdapter();
@@ -112,13 +114,21 @@ class DefaultWorkmanagerAdapter implements WorkmanagerAdapter {
 }
 
 /// Registers the periodic reconcile safety net. Safe to call on every launch.
-@lazySingleton
-class BackgroundScheduler {
-  BackgroundScheduler(this._workmanager);
+abstract interface class BackgroundScheduler {
+  /// Idempotent; logs instead of throwing so app start never fails.
+  Future<void> register();
+}
+
+/// Mobile: WorkManager (Android) / BGAppRefresh (iOS) wakes a headless isolate
+/// that runs [knightCallbackDispatcher].
+@mobileEnv
+@LazySingleton(as: BackgroundScheduler)
+class WorkmanagerBackgroundScheduler implements BackgroundScheduler {
+  WorkmanagerBackgroundScheduler(this._workmanager);
 
   final WorkmanagerAdapter _workmanager;
 
-  /// Idempotent; logs instead of throwing so app start never fails.
+  @override
   Future<void> register() async {
     try {
       // `isInDebugMode` is deprecated in workmanager 0.10 (no effect), so omitted.
@@ -156,4 +166,16 @@ class BackgroundScheduler {
       debugPrint('[background] WorkManager registration failed: $e\n$st');
     }
   }
+}
+
+/// Desktop: there is no OS background wake-up and no headless isolate. The
+/// app process itself stays alive (launched at login) and reconciles
+/// in-process, so there is nothing to register.
+@desktopEnv
+@LazySingleton(as: BackgroundScheduler)
+class DesktopBackgroundScheduler implements BackgroundScheduler {
+  const DesktopBackgroundScheduler();
+
+  @override
+  Future<void> register() async {}
 }

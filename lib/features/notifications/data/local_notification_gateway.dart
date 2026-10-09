@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:injectable/injectable.dart';
 import 'package:intl/intl.dart';
 import 'package:knight_rise/core/config/background_ids.dart';
+import 'package:knight_rise/core/di/app_environment.dart';
 import 'package:knight_rise/features/notifications/data/background_entry.dart';
 import 'package:knight_rise/features/notifications/data/notification_content.dart';
 import 'package:knight_rise/features/notifications/data/notification_response_mapper.dart';
@@ -25,6 +26,9 @@ const Color _brandCyan = Color(0xFF00E5FF);
 
 const String _groupKey = 'knight_rise';
 
+/// Android / iOS: the OS scheduler holds and fires reminders, and Done / Snooze
+/// actions run in a headless isolate ([knightNotificationBackgroundHandler]).
+@mobileEnv
 @LazySingleton(as: NotificationGateway)
 class LocalNotificationGateway implements NotificationGateway {
   LocalNotificationGateway(this._plugin, this._location);
